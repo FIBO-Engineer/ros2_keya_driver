@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <vector>
 
 namespace keya_driver_hardware_interface
 {
@@ -20,9 +21,7 @@ namespace keya_driver_hardware_interface
             throw std::runtime_error("This program only supports one steering wheel: " + std::to_string(_can_id_list.size()));
         }
 
-        a_curr_pos[0] = 0;
-
-        RCLCPP_INFO(rclcpp::get_logger("construct logger"), "[Constructor] Initializing Motor...");
+        RCLCPP_INFO(rclcpp::get_logger("CANDriverHW"), "[Constructor] Initializing Motor...");
 
     }
 
@@ -30,7 +29,7 @@ namespace keya_driver_hardware_interface
     {
         if (!stream.is_open())
         {
-            RCLCPP_ERROR(rclcpp::get_logger("deconstruct logger"), "Stream was already closed.");
+            RCLCPP_ERROR(rclcpp::get_logger("CANDriverHW"), "Stream was already closed.");
         }
         disconnect();
         std::cout << "[~keya_motor] Motor drive disconnected" << std::endl;
@@ -55,7 +54,7 @@ namespace keya_driver_hardware_interface
         }
 
         stream.assign(natsock);
-        RCLCPP_INFO(rclcpp::get_logger("can connect logger"), "CAN socket connected");
+        RCLCPP_INFO(rclcpp::get_logger("CANDriverHW"), "CAN socket connected");
     }
 
     void CANDriverHW::disconnect()
@@ -66,54 +65,76 @@ namespace keya_driver_hardware_interface
         }
     }
 
-    hardware_interface::CallbackReturn CANDriverHW::on_configure(const rclcpp_lifecycle::State & previous_state)
-    {
+    
+    // hardware_interface::CallbackReturn CANDriverHW::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
+    // {
 
-        return CallbackReturn::SUCCESS;
-    }
+    //     return CallbackReturn::SUCCESS;
+    // }
 
-    hardware_interface::CallbackReturn CANDriverHW::on_cleanup(const rclcpp_lifecycle::State & previous_state)
-    {
+    // hardware_interface::CallbackReturn CANDriverHW::on_cleanup(const rclcpp_lifecycle::State & /*previous_state*/)
+    // {
 
-        return CallbackReturn::SUCCESS;
-    }
+    //     return CallbackReturn::SUCCESS;
+    // }
 
-    hardware_interface::CallbackReturn CANDriverHW::on_shutdown(const rclcpp_lifecycle::State & previous_state)
-    {
+    // hardware_interface::CallbackReturn CANDriverHW::on_shutdown(const rclcpp_lifecycle::State & /*previous_state*/)
+    // {
 
-        return CallbackReturn::SUCCESS;
-    }
+    //     CANDriverHW::disconnect();
 
-    hardware_interface::CallbackReturn CANDriverHW::on_error(const rclcpp_lifecycle::State & previous_state)
-    {
+    //     return CallbackReturn::SUCCESS;
+    // }
 
-        return CallbackReturn::SUCCESS;
-    }
+    // hardware_interface::CallbackReturn CANDriverHW::on_error(const rclcpp_lifecycle::State & /*previous_state*/)
+    // {
+
+    //     return CallbackReturn::SUCCESS;
+    // }
 
     hardware_interface::CallbackReturn CANDriverHW::on_init(const hardware_interface::HardwareInfo & info)
     {
         if (hardware_interface::ActuatorInterface::on_init(info) != CallbackReturn::SUCCESS)
         {
+            RCLCPP_FATAL(rclcpp::get_logger("CANDriverHW"),"Initialization failed...");
             return CallbackReturn::ERROR;
         }
 
+        cfg_.device_id = info_.hardware_parameters["device_id"];
+
+        RCLCPP_INFO(rclcpp::get_logger("CANDriverHW"),"Connecting CAN...");
+
+        CANDriverHW::connect();
+
+        RCLCPP_INFO(rclcpp::get_logger("CANDriverHW"),"CAN Connected.");
+
         return CallbackReturn::SUCCESS;
+    
     }
 
     std::vector<hardware_interface::StateInterface> CANDriverHW::export_state_interfaces()
     {
+        std::vector<hardware_interface::StateInterface> state_interface;
 
+
+        return state_interface;
     }
 
     std::vector<hardware_interface::CommandInterface> CANDriverHW::export_command_interfaces()
     {
+        std::vector<hardware_interface::CommandInterface> command_interface;
 
+
+        return command_interface;
     }
 
-    hardware_interface::CallbackReturn CANDriverHW::on_activate(const rclcpp_lifecycle::State & previous_state)
+    hardware_interface::CallbackReturn CANDriverHW::on_activate(const rclcpp_lifecycle::State & /*previous_state*/)
     {
+
+        RCLCPP_INFO(rclcpp::get_logger("CANDriverHW"),"Enabling Motor Control...");
+
         std::vector<bool> res;
-        for (int i = 0; i < can_id_list.size(); i++)
+        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             can_frame position_control_enable_frame = codec.encode_position_control_enable_request(can_id_list[i]);
             can_write(position_control_enable_frame, std::chrono::milliseconds(200));
@@ -122,13 +143,18 @@ namespace keya_driver_hardware_interface
             clear_buffer(input_buffer);
         }
 
+        RCLCPP_INFO(rclcpp::get_logger("CANDriverHW"),"Motor Control Enabled.");
+
         return CallbackReturn::SUCCESS;
     }
 
-    hardware_interface::CallbackReturn CANDriverHW::on_deactivate(const rclcpp_lifecycle::State & previous_state)
+    hardware_interface::CallbackReturn CANDriverHW::on_deactivate(const rclcpp_lifecycle::State & /*previous_state*/)
     {
+
+        RCLCPP_INFO(rclcpp::get_logger("CANDriverHW"),"Disabling Motor Control...");
+
         std::vector<bool> res;
-        for (int i = 0; i < can_id_list.size(); i++)
+        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             can_frame position_control_disable_frame = codec.encode_position_control_disable_request(can_id_list[i]);
             can_write(position_control_disable_frame, std::chrono::milliseconds(200));
@@ -137,13 +163,15 @@ namespace keya_driver_hardware_interface
             clear_buffer(input_buffer);
         }
 
+        RCLCPP_INFO(rclcpp::get_logger("CANDriverHW"),"Motor Control Disabled.");
+
         return CallbackReturn::SUCCESS;
     }
 
-    hardware_interface::return_type CANDriverHW::read(const rclcpp::Time & time, const rclcpp::Duration & period)
+    hardware_interface::return_type CANDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
         
-        for (int i = 0; i < can_id_list.size(); i++)
+        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             can_frame req_ang_frame = codec.encode_position_request(can_id_list[i]);
             if (stream.is_open())
@@ -159,26 +187,28 @@ namespace keya_driver_hardware_interface
             }
             else
             {
-                RCLCPP_ERROR(rclcpp::get_logger("read logger"), "CAN socket is not opened yet: read");
+                RCLCPP_ERROR(rclcpp::get_logger("CANDriverHW"), "CAN socket is not opened yet: read");
                 throw std::runtime_error("CAN socket is not opened yet: read");
                 
                 return hardware_interface::return_type::ERROR;
             }
         }
+
+        return hardware_interface::return_type::OK;
     }
 
-    hardware_interface::return_type CANDriverHW::write(const rclcpp::Time & time, const rclcpp::Duration & period)
+    hardware_interface::return_type CANDriverHW::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
         if (!stream.is_open())
         {
-            RCLCPP_ERROR(rclcpp::get_logger("write logger"),"CAN socket is not opened yet: write");
+            RCLCPP_ERROR(rclcpp::get_logger("CANDriverHW"),"CAN socket is not opened yet: write");
             throw std::runtime_error("CAN socket is not opened yet: write");
 
             return hardware_interface::return_type::ERROR;
         }
 
         can_frame req_pos_cmd;
-        for (int i = 0; i < can_id_list.size(); i++)
+        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i]);
             can_write(req_pos_cmd, std::chrono::milliseconds(100));
@@ -186,7 +216,7 @@ namespace keya_driver_hardware_interface
 
             if (!codec.decode_command_response(input_buffer))
             {
-                RCLCPP_ERROR(rclcpp::get_logger("pos logger"), "Cannot request position command");
+                RCLCPP_ERROR(rclcpp::get_logger("CANDriverHW"), "Cannot request position command");
 
                 return hardware_interface::return_type::ERROR;
             }
@@ -242,7 +272,7 @@ namespace keya_driver_hardware_interface
         io_context.run_for(timeout);
         if (!io_context.stopped())
         {
-            RCLCPP_ERROR(rclcpp::get_logger("run logger"),"Operation Timeout, probably due to no data back from the devicde.");
+            RCLCPP_ERROR(rclcpp::get_logger("CANDriverHW"),"Operation Timeout, probably due to no data return from the devicde.");
             stream.close();
             io_context.run();
         }

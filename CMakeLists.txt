@@ -17,12 +17,13 @@ include_directories(
   include
 )
 
-add_executable(
+add_library(
   keya_driver
-  src/can_driver_hw.cpp
+  # src/can_driver_hw.cpp
+  SHARED
   src/keya_codec.cpp
   src/keya_driver_hw.cpp
-  src/keya_driver_node.cpp
+  # src/keya_driver_node.cpp
 )
 
 ament_target_dependencies( keya_driver
@@ -38,6 +39,11 @@ ament_target_dependencies( keya_driver
 install(TARGETS
   keya_driver
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY 
+  launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

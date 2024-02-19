@@ -1,0 +1,8 @@
+<launch>
+    <node pkg="ros2_keya_driver" exec="keya_driver" name="keya_driver">
+        <param name="device_id" type="string" value="can0" />
+        <rosparam param="can_id_list">[1]</rosparam>
+
+    </node>
+    
+</launch>

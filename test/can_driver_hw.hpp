@@ -6,24 +6,31 @@
 #include <linux/can.h>
 #include <linux/can/raw.h>
 
+// #include <ros2_keya_driver/config.h>
+
 namespace keya_driver_hardware_interface
 {
     class CANDriverHW : public KeyaDriverHW
     {
+
+    struct Config 
+    {
+        std::string device_id = "can0";
+        std::vector<canid_t> can_id_list = {1};
+    };
+
     public:
         CANDriverHW(std::string _device_id, std::vector<canid_t> _can_id);
         ~CANDriverHW() override;
 
-        void connect() override;
-        void disconnect() override;
-
-        // void attachControllerManager(std::shared_ptr<controller_manager::ControllerManager> cm) override;
+        // void connect() override;
+        // void disconnect() override;
 
         /* rclcpp::LifeCycleNodeInterface */
-        virtual CallbackReturn on_configure(const rclcpp_lifecycle::State & previous_state) override; 
-        virtual CallbackReturn on_cleanup(const rclcpp_lifecycle::State & previous_state) override;
-        virtual CallbackReturn on_shutdown(const rclcpp_lifecycle::State & previous_state) override;
-        virtual CallbackReturn on_error(const rclcpp_lifecycle::State & previous_state) override; 
+        // virtual CallbackReturn on_configure(const rclcpp_lifecycle::State & previous_state) override; 
+        // virtual CallbackReturn on_cleanup(const rclcpp_lifecycle::State & previous_state) override;
+        // virtual CallbackReturn on_shutdown(const rclcpp_lifecycle::State & previous_state) override;
+        // virtual CallbackReturn on_error(const rclcpp_lifecycle::State & previous_state) override; 
 
         /* hardware_interface::ActuatorInterface */
         virtual CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
@@ -38,11 +45,14 @@ namespace keya_driver_hardware_interface
         void can_read(std::chrono::steady_clock::duration timeout);
         void can_write(can_frame &message, std::chrono::steady_clock::duration timeout);
         void clear_buffer(can_frame &input_buffer);
-        void run(std::chrono::steady_clock::duration timeout) override;
+        // void run(std::chrono::steady_clock::duration timeout) override;
 
         // Input
         std::string device_id;
         std::vector<canid_t> can_id_list;
+
+        // Config
+        Config cfg_;
 
         boost::asio::posix::basic_stream_descriptor<> stream;
         can_frame input_buffer;

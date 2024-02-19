@@ -1,0 +1,4 @@
+keya_driver_node:
+  ros_parameters:
+    driver_id: "can0"
+    can_id_list: [1]

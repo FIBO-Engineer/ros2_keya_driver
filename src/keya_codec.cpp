@@ -82,6 +82,7 @@ namespace keya_driver_hardware_interface
         else
         {
             RCLCPP_ERROR(rclcpp::get_logger("decode_logger"),"Error byte 0 returns: %u", input_buffer.data[0]);
+            return false;
         }
     }
 
