@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!-- Revolute-Revolute Manipulator -->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="keya_world">
+
+  <!-- Import RRBot URDF -->
+  <xacro:include filename="$(find ros2_keya_driver)/description/keya.urdf.xacro" />
+
+  <!-- Import RRBot ros2_control description -->
+  <xacro:include filename="$(find ros2_keya_driver)/description/keya.ros2_control.xacro" />
+
+  <xacro:arg name="prefix" default="motor" />
+  <xacro:arg name="parent" default="world" />
+
+
+  <!-- Used for fixing robot -->
+  <link name="$(arg parent)" />
+
+  <xacro:keya parent="$(arg parent)" prefix="$(arg prefix)" />
+
+  <xacro:keya_ros2_control
+    name="keya" prefix="$(arg prefix)" />
+
+</robot>

@@ -19,11 +19,9 @@ include_directories(
 
 add_library(
   keya_driver
-  # src/can_driver_hw.cpp
   SHARED
   src/keya_codec.cpp
   src/keya_driver_hw.cpp
-  # src/keya_driver_node.cpp
 )
 
 ament_target_dependencies( keya_driver

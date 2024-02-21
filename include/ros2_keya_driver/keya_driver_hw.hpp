@@ -8,6 +8,7 @@
 #include <ros2_keya_driver/keya_codec.hpp>
 
 #include <boost/asio.hpp>
+#include <boost/asio/posix/basic_stream_descriptor.hpp>
 
 #include <vector>
 
@@ -61,13 +62,13 @@ namespace keya_driver_hardware_interface
         boost::asio::io_context io_context;
 
     private:
-        std::string device_id;
-        std::vector<canid_t> can_id_list;
+        std::string device_id = "can0";
+        std::vector<canid_t> can_id_list = {0x86000001};
 
         std::vector<double> hw_commands_;
         std::vector<double> hw_states_;
 
-        boost::asio::posix::basic_stream_descriptor<> stream;
+        std::shared_ptr<boost::asio::posix::basic_stream_descriptor<>> stream;
         can_frame input_buffer;
 
     };

@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:property name="rotate" value="3.14" />
+    <xacro:property name="base_radius" value="0.085" />
+    <xacro:property name="base_height" value="0.081" />
+    <xacro:property name="wheel_radius" value="0.04" />
+    <xacro:property name="wheel_height" value="0.095" />
+
+    <xacro:macro name="Keya" params="parent prefix">
+
+        <link name="{prefix}_base_link">
+            <visual>
+                <geometry>
+                    <cylinder length="${base_height}" radius="${base_radius}" />
+                </geometry>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <material name="red">
+                    <color rgba="1 0 0 1" />
+                </material>
+            </visual>
+        </link>
+
+        <joint name="${parent}_${prefix}_base" type="fixed">
+            <parent link="${parent}" />
+            <child link="${prefix}_base_link" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+        </joint>
+
+        <link name="${prefix}_wheel">
+            <visual>
+                <geometry>
+                    <cylinder length="${wheel_height}" radius="${wheel_radius}" />
+                </geometry>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <material name="white">
+                    <color rgba="1 1 1 1" />
+                </material>
+            </visual>
+        </link>
+
+        <!-- Revolute joint -->
+        <joint name="${prefix}_joint" type="revolute">
+            <parent link="${prefix}_base_link" />
+            <child link="${prefix}_wheel" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <axis xyz="0 0 1" />
+        </joint>
+
+    </xacro:macro>
+
+</robot>

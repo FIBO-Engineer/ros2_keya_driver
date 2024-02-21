@@ -4,11 +4,12 @@
     <xacro:macro name="keya_ros2_control" params="name prefix">
         <ros2_control name="{name}" type="actuator">
             <hardware>
+                <plugin>keya_driver_hardware_interface/KeyaDriverHW</plugin>
                 <param name="device_id">can0</param>
                 <param name="can_id_list">{1}</param>
             </hardware>
 
-            <joint name="${prefix}steering_motor">
+            <joint name="${prefix}_steering_motor">
                 <command_interface name="position"/>
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>

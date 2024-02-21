@@ -141,7 +141,7 @@ namespace keya_driver_hardware_interface
             throw std::runtime_error("Error while binding CAN socket");
         }
 
-        stream.assign(natsock);
+        stream->assign(natsock);
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN socket connected");
 
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuration successful");
@@ -153,9 +153,9 @@ namespace keya_driver_hardware_interface
     {
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Cleaning up...");
 
-        if (stream.is_open())
+        if (stream->is_open())
         {
-            stream.close();
+            stream->close();
         }
 
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Clean up successful");
@@ -233,7 +233,7 @@ namespace keya_driver_hardware_interface
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             can_frame req_ang_frame = codec.encode_position_request(can_id_list[i]);
-            if (stream.is_open())
+            if (stream->is_open())
             {
                 can_write(req_ang_frame, std::chrono::milliseconds(100)); // Write a position read request
                 can_read(std::chrono::milliseconds(100));
@@ -258,7 +258,7 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        if (!stream.is_open())
+        if (!stream->is_open())
         {
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"CAN socket is not opened yet: write");
             throw std::runtime_error("CAN socket is not opened yet: write");
@@ -288,7 +288,7 @@ namespace keya_driver_hardware_interface
     void KeyaDriverHW::can_read(std::chrono::steady_clock::duration /*timeout*/)
     {
         boost::system::error_code error;
-        boost::asio::async_read(stream,
+        boost::asio::async_read(*stream,
                                 boost::asio::buffer(&input_buffer, sizeof(input_buffer)),
                                 [&](const boost::system::error_code &res_error, std::size_t)
                                 {
@@ -305,7 +305,7 @@ namespace keya_driver_hardware_interface
     void KeyaDriverHW::can_write(can_frame &message, std::chrono::steady_clock::duration /*timeout*/)
     {
         boost::system::error_code error;
-        boost::asio::async_write(stream, boost::asio::buffer(&message, sizeof(message)),
+        boost::asio::async_write(*stream, boost::asio::buffer(&message, sizeof(message)),
                                  [&](const boost::system::error_code &res_error, std::size_t)
                                  {
                                      error = res_error;
