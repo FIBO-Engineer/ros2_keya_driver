@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
-<!-- Revolute-Revolute Manipulator -->
+<!-- KEYA Automatic Steering Motor -->
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="keya_world">
 
-  <!-- Import RRBot URDF -->
-  <xacro:include filename="$(find ros2_keya_driver)/description/keya.urdf.xacro" />
+  <!-- Import Keya URDF -->
+  <xacro:include filename="$(find ros2_keya_driver)/description/ros2_control/keya.urdf.xacro" />
 
-  <!-- Import RRBot ros2_control description -->
-  <xacro:include filename="$(find ros2_keya_driver)/description/keya.ros2_control.xacro" />
+  <!-- Import Keya ros2_control description -->
+  <xacro:include filename="$(find ros2_keya_driver)/description/ros2_control/keya.ros2_control.xacro" />
 
   <xacro:arg name="prefix" default="motor" />
   <xacro:arg name="parent" default="world" />

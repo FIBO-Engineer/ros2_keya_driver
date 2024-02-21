@@ -7,9 +7,9 @@
     <xacro:property name="wheel_radius" value="0.04" />
     <xacro:property name="wheel_height" value="0.095" />
 
-    <xacro:macro name="Keya" params="parent prefix">
+    <xacro:macro name="keya" params="parent prefix">
 
-        <link name="{prefix}_base_link">
+        <link name="${prefix}_base_link">
             <visual>
                 <geometry>
                     <cylinder length="${base_height}" radius="${base_radius}" />
@@ -45,6 +45,7 @@
             <child link="${prefix}_wheel" />
             <origin xyz="0 0 0" rpy="0 0 0" />
             <axis xyz="0 0 1" />
+            <limit lower="0" upper="3.14" velocity="0.5" effort="1.0" />
         </joint>
 
     </xacro:macro>

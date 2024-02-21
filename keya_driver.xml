@@ -1,0 +1,7 @@
+<library path="libkeya_driver">
+    <class name="keya_driver_hardware_interface/KeyaDriverHW" type="keya_driver_hardware_interface::KeyaDriverHW"
+    base_class_type="hardware_interface::ActuatorInterface">
+        <description>This is a Keya Actuator Interface used in ROS 2 control</description>
+    </class>
+
+</library>

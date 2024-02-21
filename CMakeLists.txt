@@ -34,6 +34,9 @@ ament_target_dependencies( keya_driver
 
 )
 
+pluginlib_export_plugin_description_file(hardware_interface keya_driver.xml)
+
+# INSTALL
 install(TARGETS
   keya_driver
   DESTINATION lib/${PROJECT_NAME}
@@ -41,6 +44,17 @@ install(TARGETS
 
 install(DIRECTORY 
   launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY
+  include 
+  DESTINATION include/${PROJECT_NAME}
+)
+
+install(DIRECTORY 
+  config 
+  description 
   DESTINATION share/${PROJECT_NAME}
 )
 
