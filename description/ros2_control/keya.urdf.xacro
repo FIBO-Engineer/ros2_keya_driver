@@ -27,7 +27,7 @@
             <origin xyz="0 0 0" rpy="0 0 0" />
         </joint>
 
-        <link name="${prefix}_wheel">
+        <link name="${prefix}_wheel_link">
             <visual>
                 <geometry>
                     <cylinder length="${wheel_height}" radius="${wheel_radius}" />
@@ -42,7 +42,7 @@
         <!-- Revolute joint -->
         <joint name="${prefix}_joint" type="revolute">
             <parent link="${prefix}_base_link" />
-            <child link="${prefix}_wheel" />
+            <child link="${prefix}_wheel_link" />
             <origin xyz="0 0 0" rpy="0 0 0" />
             <axis xyz="0 0 1" />
             <limit lower="0" upper="3.14" velocity="0.5" effort="1.0" />

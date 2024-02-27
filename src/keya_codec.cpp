@@ -75,19 +75,79 @@ namespace keya_driver_hardware_interface
 
     bool KeyaCodec::decode_command_response(can_frame &input_buffer)
     {
+        
         if (input_buffer.data[0] == 0x60)
         {
+            RCLCPP_INFO(rclcpp::get_logger("decode_logger"),"Byte 0 matched");
             return true;
         }
-        else
+        // if (input_buffer.data[0] == 72)
+        // {
+        //     RCLCPP_INFO(rclcpp::get_logger("decode_logger"), "Byte 0 matched");
+        //     return true;
+        // }
+        // if (input_buffer.data[0] == 0)
+        // {
+        //     RCLCPP_ERROR(rclcpp::get_logger("decode_logger"), "Byte 0 is 0: Hardware already connected");
+        //     return true;
+        // }
+        // if (input_buffer.data[0] == 72)
+        // {
+        //     RCLCPP_ERROR(rclcpp::get_logger("decode_logger"), "Byte 0 is 72: Hardware connected but data is incorrect.");
+        //     return false;
+        // }
+        else 
         {
             RCLCPP_ERROR(rclcpp::get_logger("decode_logger"),"Error byte 0 returns: %u", input_buffer.data[0]);
             return false;
         }
     }
 
+    bool KeyaCodec::decode_position_command_response(can_frame &input_buffer)
+    {
+        RCLCPP_INFO(rclcpp::get_logger("cmd_decode_logger"), "Current byte 0: %u", input_buffer.data[0]);
+
+        return true;
+    }
+
     double KeyaCodec::decode_position_response(can_frame &input_buffer)
     {
+        // if(input_buffer.data[0] == 0x60)
+        // {
+        //     // RCLCPP_INFO(rclcpp::get_logger("position_logger"), "Byte 0 matched");
+
+        //     static int32_t prev_position = 0;
+
+        //     int32_t curr_position = prev_position;
+        //     *(uint8_t *)(&curr_position) = input_buffer.data[4];
+        //     *((uint8_t *)(&curr_position) + 1) = input_buffer.data[5];
+        //     *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
+        //     *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
+
+        //     int32_t delta_position = curr_position - prev_position;
+
+        //     double delta_deg = delta_position * 360 / 10000; // convert count to degree
+
+        //     prev_position = curr_position;
+
+        //     // RCLCPP_INFO(rclcpp::get_logger("position_logger"), "Byte 0 returns 0x60");
+        //     RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", delta_deg);
+
+        //     return delta_deg;
+        // }
+        // else
+        // {
+        //     RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: 0.000000");
+
+        //     return 0.0;
+        // }
+        
+        if(input_buffer.data[0] != 0x60)
+        {
+            throw std::runtime_error("Incorrect address while decoding position reponse: " + std::to_string(input_buffer.data[0]));
+            // return 0.0;
+        }
+
         static int32_t prev_position = 0;
 
         int32_t curr_position = prev_position;
@@ -96,13 +156,28 @@ namespace keya_driver_hardware_interface
         *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
         *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
 
-        int32_t delta_position = curr_position - prev_position;
+        // int32_t delta_position = curr_position - prev_position;
 
-        double delta_deg = delta_position * 360 / 10000; // convert count to degree
+        // double delta_deg = delta_position * 360 / 10000; // convert count to degree
+
+        curr_position = curr_position * 360 / 10000;
 
         prev_position = curr_position;
 
-        return delta_deg; 
+        if( prev_position == 2359 || prev_position == -2359 || prev_position == 2350 || prev_position == -2350)
+        {
+            RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: 0");
+
+            return 0;
+
+        }
+        else
+        {
+            RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %d", prev_position);
+
+            return prev_position;
+        }
+        // RCLCPP_INFO(rclcpp::get_logger("position_logger"), "Byte 0 returns 0x60");
     }
     
 }

@@ -9,9 +9,9 @@
                 <!-- <param name="can_id_list">{1}</param> -->
             </hardware>
 
-            <joint name="${prefix}_steering_motor">
-                <command_interface name="position"/>
-                <state_interface name="position"/>
+            <joint name="${prefix}_joint">
+                <command_interface name="position" />
+                <state_interface name="position" />
             </joint>
         </ros2_control>
 

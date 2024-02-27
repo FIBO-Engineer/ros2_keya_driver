@@ -55,7 +55,7 @@ namespace keya_driver_hardware_interface
         void can_write(can_frame &message, std::chrono::steady_clock::duration timeout);
         void clear_buffer(can_frame &input_buffer);
         
-        // void run(std::chrono::steady_clock::duration timeout) override;
+        void run(std::chrono::steady_clock::duration timeout);
 
         KeyaCodec codec;
 
@@ -64,12 +64,18 @@ namespace keya_driver_hardware_interface
     private:
         std::string device_id = "can0";
         std::vector<canid_t> can_id_list = {0x86000001};
+        // std::vector<canid_t> can_id_list;
 
         std::vector<double> hw_commands_;
         std::vector<double> hw_states_;
 
         std::shared_ptr<boost::asio::posix::basic_stream_descriptor<>> stream;
+        // boost::asio::posix::basic_stream_descriptor<> stream;
         can_frame input_buffer;
+
+        // products
+        double current_position;
+        double current_command;
 
     };
 }
