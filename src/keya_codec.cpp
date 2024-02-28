@@ -5,6 +5,7 @@
 #include <numeric>
 #include <cstdint>
 #include <iostream>
+#include <math.h>
 
 namespace keya_driver_hardware_interface
 {
@@ -44,7 +45,8 @@ namespace keya_driver_hardware_interface
 
     can_frame KeyaCodec::encode_position_command_request(canid_t can_id, double cmd)
     {
-        int32_t cmd_unit = cmd * 10000 / 360;
+        // int32_t cmd_unit = cmd * 10000 / 360;
+        int32_t cmd_unit = cmd * 10000 / (2 * M_PI) ;
         can_frame frame;
         frame.can_id = can_id;
         frame.can_dlc = 8;
@@ -115,23 +117,27 @@ namespace keya_driver_hardware_interface
         *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
         *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
 
-        curr_position = curr_position * 360 / 10000;
+        curr_position = curr_position * ( 2 * M_PI) / 10000;
 
         prev_position = curr_position;
 
-        if( prev_position == 2359 || prev_position == -2359 || prev_position == 2350 || prev_position == -2350)
-        {
-            RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: 0");
+        // if( prev_position == 2359 || prev_position == -2359 || prev_position == 2350 || prev_position == -2350)
+        // {
+        //     RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: 0");
 
-            return 0;
+        //     return 0;
 
-        }
-        else
-        {
-            RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %d", prev_position);
+        // }
+        // else
+        // {
+        //     RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %d", prev_position);
 
-            return prev_position;
-        }
+        //     return prev_position;
+        // }
+
+        RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %d", prev_position);
+
+        return prev_position;
         // RCLCPP_INFO(rclcpp::get_logger("position_logger"), "Byte 0 returns 0x60");
     }
     
