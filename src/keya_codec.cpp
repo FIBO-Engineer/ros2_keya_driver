@@ -109,7 +109,8 @@ namespace keya_driver_hardware_interface
             // return 0.0;
         }
 
-        static int32_t prev_position = 0;
+        static double prev_position = 0.00;
+        double curr_position_double;
 
         int32_t curr_position = prev_position;
         *(uint8_t *)(&curr_position) = input_buffer.data[4];
@@ -117,9 +118,9 @@ namespace keya_driver_hardware_interface
         *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
         *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
 
-        curr_position = curr_position * ( 2 * M_PI) / 10000;
+        curr_position_double = curr_position * ( 2 * M_PI) / 10000;
 
-        prev_position = curr_position;
+        prev_position = curr_position_double;
 
         // if( prev_position == 2359 || prev_position == -2359 || prev_position == 2350 || prev_position == -2350)
         // {
@@ -135,7 +136,7 @@ namespace keya_driver_hardware_interface
         //     return prev_position;
         // }
 
-        RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %d", prev_position);
+        RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
 
         return prev_position;
         // RCLCPP_INFO(rclcpp::get_logger("position_logger"), "Byte 0 returns 0x60");
