@@ -259,41 +259,6 @@ namespace keya_driver_hardware_interface
         return CallbackReturn::SUCCESS;
     }
 
-    hardware_interface::return_type KeyaDriverHW::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
-    {
-        if (!stream->is_open())
-        {
-            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"CAN socket is not opened yet: write");
-            throw std::runtime_error("CAN socket is not opened yet: write");
-
-            return hardware_interface::return_type::ERROR;
-        }
-
-        can_frame req_pos_cmd;
-        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
-        {
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "hw_command_[0]: %f", hw_commands_[0]);
-
-            a_cmd_pos[i] = hw_commands_[0];
-            
-            req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i]);
-
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Commanded position: %f", a_cmd_pos[i]);
-
-            can_write(req_pos_cmd, std::chrono::milliseconds(100));
-            can_read(std::chrono::milliseconds(100));
-
-            if (!codec.decode_position_command_response(input_buffer))
-            {
-                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot request position command");
-
-                return hardware_interface::return_type::ERROR;
-            }
-            clear_buffer(input_buffer);
-        }
-        return hardware_interface::return_type::OK;
-    }
-
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
         
@@ -348,6 +313,41 @@ namespace keya_driver_hardware_interface
         }
         return hardware_interface::return_type::OK;
     }
+
+    hardware_interface::return_type KeyaDriverHW::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
+    {
+        if (!stream->is_open())
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"CAN socket is not opened yet: write");
+            throw std::runtime_error("CAN socket is not opened yet: write");
+
+            return hardware_interface::return_type::ERROR;
+        }
+
+        can_frame req_pos_cmd;
+        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
+        {
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "hw_command_[0]: %f", hw_commands_[0]);
+
+            a_cmd_pos[i] = hw_commands_[0];
+            
+            req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i]);
+
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Commanded position: %f", a_cmd_pos[i]);
+
+            can_write(req_pos_cmd, std::chrono::milliseconds(100));
+            can_read(std::chrono::milliseconds(100));
+
+            if (!codec.decode_position_command_response(input_buffer))
+            {
+                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot request position command");
+
+                return hardware_interface::return_type::ERROR;
+            }
+            clear_buffer(input_buffer);
+        }
+        return hardware_interface::return_type::OK;
+    }    
 
     void KeyaDriverHW::can_read(std::chrono::steady_clock::duration timeout)
     {

@@ -14,6 +14,20 @@ def generate_launch_description():
     declared_arguments = []
     declared_arguments.append(
         DeclareLaunchArgument(
+            "description_package",
+            default_value="ros2_keya_driver",
+            description="Description package with robot URDF/xacro files.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "description_file",
+            default_value="keya_world.xacro",
+            description="URDF/xacro description file with robot.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
             "gui",
             default_value="false",
             description="Start RViz2 automatically with this launch file",
