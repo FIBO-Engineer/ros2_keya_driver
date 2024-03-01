@@ -110,7 +110,7 @@ namespace keya_driver_hardware_interface
         }
 
         static double prev_position = 0.00;
-        double curr_position_double;
+        double curr_position_rad;
 
         int32_t curr_position = prev_position;
         *(uint8_t *)(&curr_position) = input_buffer.data[4];
@@ -118,9 +118,9 @@ namespace keya_driver_hardware_interface
         *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
         *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
 
-        curr_position_double = curr_position * ( 2 * M_PI) / 10000;
+        curr_position_rad = curr_position * ( 2 * M_PI) / 10000;
 
-        prev_position = curr_position_double;
+        prev_position = curr_position_rad;
 
         // if( prev_position == 2359 || prev_position == -2359 || prev_position == 2350 || prev_position == -2350)
         // {
