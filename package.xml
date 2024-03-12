@@ -16,6 +16,7 @@
   <depend>controller_manager</depend>
   <depend>pluginlib</depend>
   <depend>position_controllers</depend>
+  <depend>diagnostic_updater</depend>
   <exec_depend>ros2launch</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>

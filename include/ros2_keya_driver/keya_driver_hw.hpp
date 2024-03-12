@@ -17,6 +17,9 @@
 
 #include "rclcpp/macros.hpp"
 
+#include "diagnostic_updater/diagnostic_updater.hpp"
+#include "diagnostic_updater/diagnostic_status_wrapper.hpp"
+
 namespace keya_driver_hardware_interface
 {
     class KeyaDriverHW : public hardware_interface::ActuatorInterface
@@ -73,9 +76,22 @@ namespace keya_driver_hardware_interface
         // boost::asio::posix::basic_stream_descriptor<> stream;
         can_frame input_buffer;
 
+        // raw object
+        std::mutex read_mtx;
+
+        // diagnostic
+        rclcpp::Node::SharedPtr node;
+        std::thread rcl_thread;
+        void produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat);
+        std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater;
+
         // products
         double current_position;
         double current_command;
+        uint16_t alarm_code;
+        ErrorSignal error_signal;
+        double current_current;
+        // StatusSignal status_signal;
 
     };
 }

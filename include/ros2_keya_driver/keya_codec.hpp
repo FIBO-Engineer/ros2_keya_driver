@@ -5,13 +5,10 @@
 #include <vector>
 #include <linux/can.h>
 #include <linux/can/raw.h>
+#include <ros2_keya_driver/keya_error_signal.hpp>
 
 namespace keya_driver_hardware_interface
 {
-    enum CANStatus
-    {
-        MOTOR_CURRENT
-    };
 
     class KeyaCodec
     {
@@ -26,10 +23,12 @@ namespace keya_driver_hardware_interface
         bool decode_position_command_response(can_frame &input_buffer);
         can_frame encode_position_request(canid_t can_id);
         double decode_position_response(can_frame &input_buffer);
+        can_frame encode_current_request(canid_t can_id);
+        double decode_current_response(can_frame &input_buffer);
 
         // Status
-        // can_frame encode_current_request(canid_t can_id); // Motor Current Query (0x600021)
-        CANStatus decode_current_response(can_frame &input_buffer);
+        can_frame encode_error_request(canid_t can_id);
+        static ErrorSignal decode_error_response(can_frame &input_buffer);        
 
         // Motor Enabling 
         can_frame encode_position_control_enable_request(canid_t can_id);

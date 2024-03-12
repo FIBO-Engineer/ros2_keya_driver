@@ -78,6 +78,38 @@ namespace keya_driver_hardware_interface
         return frame;
     }
 
+    can_frame KeyaCodec::encode_current_request(canid_t can_id)
+    {
+        can_frame frame;
+        frame.can_id = can_id;
+        frame.can_dlc = 8;
+        frame.data[0] = 0x40;
+        frame.data[1] = 0x00;
+        frame.data[2] = 0x21;
+        frame.data[3] = 0x01;
+        frame.data[4] = 0x00;
+        frame.data[5] = 0x00;
+        frame.data[6] = 0x00;
+        frame.data[7] = 0x00;
+        return frame;
+    }
+
+    can_frame KeyaCodec::encode_error_request(canid_t can_id)
+    {
+        can_frame frame;
+        frame.can_id = can_id;
+        frame.can_dlc = 8;
+        frame.data[0] = 0x40;
+        frame.data[1] = 0x12;
+        frame.data[2] = 0x21;
+        frame.data[3] = 0x01;
+        frame.data[4] = 0x00;
+        frame.data[5] = 0x00;
+        frame.data[6] = 0x00;
+        frame.data[7] = 0x00;
+        return frame;
+    }
+
     bool KeyaCodec::decode_command_response(can_frame &input_buffer)
     {
         
@@ -122,24 +154,56 @@ namespace keya_driver_hardware_interface
 
         prev_position = curr_position_rad;
 
-        // if( prev_position == 2359 || prev_position == -2359 || prev_position == 2350 || prev_position == -2350)
-        // {
-        //     RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: 0");
-
-        //     return 0;
-
-        // }
-        // else
-        // {
-        //     RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %d", prev_position);
-
-        //     return prev_position;
-        // }
-
         RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
 
         return prev_position;
         // RCLCPP_INFO(rclcpp::get_logger("position_logger"), "Byte 0 returns 0x60");
     }
+
+    double KeyaCodec::decode_current_response(can_frame &input_buffer)
+    {
+        if(input_buffer.data[0] != 0x60)
+        {
+            throw std::runtime_error("Incorrect address while decoding current response: " + std::to_string(input_buffer.data[0]));
+        }
+
+        double motor_current = 0;
+
+        int32_t current_motor_current = motor_current;
+        *(uint8_t *)(&current_motor_current) = input_buffer.data[4];
+
+        motor_current = current_motor_current;
+
+        RCLCPP_INFO(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
+
+        return motor_current;
+    }
     
+    ErrorSignal KeyaCodec::decode_error_response(can_frame &input_buffer)
+    {
+
+        if(input_buffer.data[0] != 0x60)
+        {
+            throw std::runtime_error("Incorrect address while decoding error response: " + std::to_string(input_buffer.data[0]));
+            // return 0.0;
+        }
+
+        ErrorSignal es;
+
+        int16_t error_dat1 = 0;
+        int16_t error_dat2 = 0;
+
+        // int32_t error_dat32 = error_data; 
+
+        *(uint8_t *)(&error_dat1) = input_buffer.data[4];
+        *((uint8_t *)(&error_dat2) + 1) = input_buffer.data[5];
+
+        RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT1: %d", error_dat1);
+        RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT2: %d", error_dat2);
+        // RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT2: %d", input_buffer.data[5]);
+
+
+        return es;
+    }
+
 }

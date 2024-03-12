@@ -12,6 +12,7 @@ find_package(rclcpp_lifecycle REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(controller_manager REQUIRED)
+find_package(diagnostic_updater REQUIRED)
 
 include_directories(
   include
@@ -31,6 +32,7 @@ ament_target_dependencies( keya_driver
   rcl
   hardware_interface
   controller_manager
+  diagnostic_updater
 
 )
 
