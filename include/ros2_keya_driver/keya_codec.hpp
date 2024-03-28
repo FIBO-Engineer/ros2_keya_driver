@@ -6,6 +6,7 @@
 #include <linux/can.h>
 #include <linux/can/raw.h>
 #include <ros2_keya_driver/keya_error_signal.hpp>
+#include <ros2_keya_driver/keya_error_signal_1.hpp>
 
 namespace keya_driver_hardware_interface
 {
@@ -30,7 +31,9 @@ namespace keya_driver_hardware_interface
         can_frame encode_error_0_request(canid_t can_id);
         static ErrorSignal decode_error_0_response(can_frame &input_buffer);  
         can_frame encode_error_1_request(canid_t can_id);
-        static ErrorSignal decode_error_1_response(can_frame &input_buffer);      
+        static ErrorSignal1 decode_error_1_response(can_frame &input_buffer);    
+
+        double decode_current_heartbeat_response(can_frame &input_buffer);  
 
         // Motor Enabling 
         can_frame encode_position_control_enable_request(canid_t can_id);

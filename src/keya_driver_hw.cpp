@@ -72,10 +72,10 @@ namespace keya_driver_hardware_interface
     void KeyaDriverHW::produce_diagnostics_0(diagnostic_updater::DiagnosticStatusWrapper &stat)
     {
         uint16_t _alarm_code;
-        keya_driver_hardware_interface::ErrorSignal _error_signal;
+        keya_driver_hardware_interface::ErrorSignal _error_signal_0;
         read_mtx.lock();
         _alarm_code = this->alarm_code;
-        _error_signal = this->error_signal_0;
+        _error_signal_0 = this->error_signal_0;
         read_mtx.unlock();
 
         if (_alarm_code)
@@ -87,24 +87,24 @@ namespace keya_driver_hardware_interface
             stat.summaryf(diagnostic_msgs::msg::DiagnosticStatus::OK, "OK");
         }
 
-        stat.add("Less Phase", _error_signal.LSPHS);
-        stat.add("Motor Stall", _error_signal.MOTSTALL);
-        stat.add("Reserved", _error_signal.RESERVED);
-        stat.add("Hall Failer", _error_signal.HALLFAIL);
-        stat.add("Current Sensing", _error_signal.CURRSENSE);
-        stat.add("232 Disconnected", _error_signal.TTTDISC);
-        stat.add("CAN Disconnected", _error_signal.CANDISC);
-        stat.add("Motor Stalled", _error_signal.MOTSTALLED);   
+        stat.add("Less Phase", _error_signal_0.LSPHS);
+        stat.add("Motor Stall", _error_signal_0.MOTSTALL);
+        stat.add("Reserved", _error_signal_0.RESERVED);
+        stat.add("Hall Failer", _error_signal_0.HALLFAIL);
+        stat.add("Current Sensing", _error_signal_0.CURRSENSE);
+        stat.add("232 Disconnected", _error_signal_0.TTTDISC);
+        stat.add("CAN Disconnected", _error_signal_0.CANDISC);
+        stat.add("Motor Stalled", _error_signal_0.MOTSTALLED);   
 
     }
 
     void KeyaDriverHW::produce_diagnostics_1(diagnostic_updater::DiagnosticStatusWrapper &stat)
     {
         uint16_t _alarm_code;
-        keya_driver_hardware_interface::ErrorSignal _error_signal;
+        keya_driver_hardware_interface::ErrorSignal1 _error_signal_1;
         read_mtx.lock();
         _alarm_code = this->alarm_code;
-        _error_signal = this->error_signal_1;
+        _error_signal_1 = this->error_signal_1;
         read_mtx.unlock();
 
         if (_alarm_code)
@@ -116,14 +116,14 @@ namespace keya_driver_hardware_interface
             stat.summaryf(diagnostic_msgs::msg::DiagnosticStatus::OK, "OK");
         }
 
-        stat.add("Disabled", _error_signal.DISABLE);
-        stat.add("Overvoltage", _error_signal.OVRVOLT);
-        stat.add("Hardware Protect", _error_signal.HRDWRPROT);
-        stat.add("E2PROM", _error_signal.EEPROM);
-        stat.add("Undervoltage", _error_signal.UNDRVOLT);
-        stat.add("N/A", _error_signal.NA);
-        stat.add("Overcurrent", _error_signal.OVRCURR);
-        stat.add("Mode Failure", _error_signal.MODEFAIL);
+        stat.add("Disabled", _error_signal_1.DISABLE);
+        stat.add("Overvoltage", _error_signal_1.OVRVOLT);
+        stat.add("Hardware Protect", _error_signal_1.HRDWRPROT);
+        stat.add("E2PROM", _error_signal_1.EEPROM);
+        stat.add("Undervoltage", _error_signal_1.UNDRVOLT);
+        stat.add("N/A", _error_signal_1.NA);
+        stat.add("Overcurrent", _error_signal_1.OVRCURR);
+        stat.add("Mode Failure", _error_signal_1.MODEFAIL);
         
     }
 

@@ -264,7 +264,7 @@ namespace keya_driver_hardware_interface
 
                 // int32_t error_dat32 = error_data;
 
-                *(uint16_t *)(&error_data) = input_buffer.data[4];
+                *(uint16_t *)(&error_data) = input_buffer.data[5];
 
                 uint16_t err_sig = static_cast<uint16_t>(error_data);
 
@@ -315,7 +315,7 @@ namespace keya_driver_hardware_interface
         // return es;
     }
 
-    ErrorSignal KeyaCodec::decode_error_1_response(can_frame &input_buffer)
+    ErrorSignal1 KeyaCodec::decode_error_1_response(can_frame &input_buffer)
     {
 
         // if(input_buffer.data[0] != 0x60)
@@ -327,7 +327,7 @@ namespace keya_driver_hardware_interface
         
         // std::cout << "packet size (error1): " << sizeof(input_buffer) << std::endl;
 
-        ErrorSignal es1;
+        ErrorSignal1 es1;
 
         for(auto &c : input_buffer.data)
         {
@@ -339,7 +339,7 @@ namespace keya_driver_hardware_interface
 
                 // int32_t error_dat32 = error_data;
 
-                *(uint16_t *)(&error_data) = input_buffer.data[5];
+                *(uint16_t *)(&error_data) = input_buffer.data[4];
 
                 uint16_t err_sig = static_cast<uint16_t>(error_data);
 
@@ -354,7 +354,8 @@ namespace keya_driver_hardware_interface
                 es1.OVRVOLT = err_sig & (1 << 1);
                 es1.DISABLE = err_sig & (1 << 0);
 
-                // std::cout << "es.DISABLE: " << es.DISABLE << std::endl;
+                std::cout << "es1.DISABLE: " << es1.DISABLE << std::endl;
+                std::cout << "es1.OVRCURR: " << es1.OVRCURR << std::endl;
 
                 RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA1: %d", error_data);
                 // RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT2: %d", input_buffer.data[5]);
@@ -393,5 +394,6 @@ namespace keya_driver_hardware_interface
 
         // return es1;
     }
+
 
 }

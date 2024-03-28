@@ -91,7 +91,7 @@ namespace keya_driver_hardware_interface
         double current_command;
         uint16_t alarm_code;
         ErrorSignal error_signal_0;
-        ErrorSignal error_signal_1;
+        ErrorSignal1 error_signal_1;
         double current_current;
         // StatusSignal status_signal;
 

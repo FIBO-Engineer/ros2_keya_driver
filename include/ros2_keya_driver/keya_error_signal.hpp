@@ -15,14 +15,14 @@ namespace keya_driver_hardware_interface
         bool TTTDISC; // 232 disconnected
         bool CANDISC; // CAN disconnected
         bool MOTSTALLED; // Motor stalled
-        bool DISABLE; // Disabled
-        bool OVRVOLT; // Overvoltage
-        bool HRDWRPROT; // Hardware protect
-        bool EEPROM; // E2PROM
-        bool UNDRVOLT; // Undervoltage
-        bool NA; // N/A
-        bool OVRCURR; // Overcurrent
-        bool MODEFAIL; // Mode Failure
+        // bool DISABLE; // Disabled
+        // bool OVRVOLT; // Overvoltage
+        // bool HRDWRPROT; // Hardware protect
+        // bool EEPROM; // E2PROM
+        // bool UNDRVOLT; // Undervoltage
+        // bool NA; // N/A
+        // bool OVRCURR; // Overcurrent
+        // bool MODEFAIL; // Mode Failure
 
         std::string getErrorMessage() const
         {
@@ -39,14 +39,14 @@ namespace keya_driver_hardware_interface
             message += LSPHS ? "Less Phase, " : "";
 
             // DAT1 Error Set
-            message += MODEFAIL ? "Mode Failure, " : "";
-            message += OVRCURR ? "Overcurrent, " : "";
-            message += NA ? "N/A, " : "";
-            message += UNDRVOLT ? "Undervoltage, " : "";
-            message += EEPROM ? "E2PROM, " : "";
-            message += HRDWRPROT ? "Hardware Protect, " : "";
-            message += OVRVOLT ? "Overvoltage, " : "";
-            message += DISABLE ? "Disabled, " : "";
+            // message += MODEFAIL ? "Mode Failure, " : "";
+            // message += OVRCURR ? "Overcurrent, " : "";
+            // message += NA ? "N/A, " : "";
+            // message += UNDRVOLT ? "Undervoltage, " : "";
+            // message += EEPROM ? "E2PROM, " : "";
+            // message += HRDWRPROT ? "Hardware Protect, " : "";
+            // message += OVRVOLT ? "Overvoltage, " : "";
+            // message += DISABLE ? "Disabled, " : "";
 
             // Remove trailing ", " if it exists
             if (!message.empty())
