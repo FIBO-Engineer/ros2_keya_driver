@@ -82,14 +82,16 @@ namespace keya_driver_hardware_interface
         // diagnostic
         rclcpp::Node::SharedPtr node;
         std::thread rcl_thread;
-        void produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat);
+        void produce_diagnostics_0(diagnostic_updater::DiagnosticStatusWrapper &stat);
+        void produce_diagnostics_1(diagnostic_updater::DiagnosticStatusWrapper &stat);
         std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater;
 
         // products
         double current_position;
         double current_command;
         uint16_t alarm_code;
-        ErrorSignal error_signal;
+        ErrorSignal error_signal_0;
+        ErrorSignal error_signal_1;
         double current_current;
         // StatusSignal status_signal;
 

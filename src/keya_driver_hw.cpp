@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <chrono>
 
+#include <iostream>
+
 namespace keya_driver_hardware_interface
 {
     hardware_interface::CallbackReturn KeyaDriverHW::on_init(const hardware_interface::HardwareInfo & info)
@@ -67,23 +69,24 @@ namespace keya_driver_hardware_interface
     
     }
 
-    void KeyaDriverHW::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat)
+    void KeyaDriverHW::produce_diagnostics_0(diagnostic_updater::DiagnosticStatusWrapper &stat)
     {
         uint16_t _alarm_code;
         keya_driver_hardware_interface::ErrorSignal _error_signal;
         read_mtx.lock();
         _alarm_code = this->alarm_code;
-        _error_signal = this->error_signal;
+        _error_signal = this->error_signal_0;
         read_mtx.unlock();
 
         if (_alarm_code)
         {
-            stat.summaryf(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Alarm Code: %f", _alarm_code);
+            stat.summaryf(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Alarm Code 0: %f", _alarm_code);
         }
         else
         {
             stat.summaryf(diagnostic_msgs::msg::DiagnosticStatus::OK, "OK");
         }
+
         stat.add("Less Phase", _error_signal.LSPHS);
         stat.add("Motor Stall", _error_signal.MOTSTALL);
         stat.add("Reserved", _error_signal.RESERVED);
@@ -91,7 +94,28 @@ namespace keya_driver_hardware_interface
         stat.add("Current Sensing", _error_signal.CURRSENSE);
         stat.add("232 Disconnected", _error_signal.TTTDISC);
         stat.add("CAN Disconnected", _error_signal.CANDISC);
-        stat.add("Motor Stalled", _error_signal.MOTSTALLED);
+        stat.add("Motor Stalled", _error_signal.MOTSTALLED);   
+
+    }
+
+    void KeyaDriverHW::produce_diagnostics_1(diagnostic_updater::DiagnosticStatusWrapper &stat)
+    {
+        uint16_t _alarm_code;
+        keya_driver_hardware_interface::ErrorSignal _error_signal;
+        read_mtx.lock();
+        _alarm_code = this->alarm_code;
+        _error_signal = this->error_signal_1;
+        read_mtx.unlock();
+
+        if (_alarm_code)
+        {
+            stat.summaryf(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Alarm Code 1: %f", _alarm_code);
+        }
+        else
+        {
+            stat.summaryf(diagnostic_msgs::msg::DiagnosticStatus::OK, "OK");
+        }
+
         stat.add("Disabled", _error_signal.DISABLE);
         stat.add("Overvoltage", _error_signal.OVRVOLT);
         stat.add("Hardware Protect", _error_signal.HRDWRPROT);
@@ -146,10 +170,16 @@ namespace keya_driver_hardware_interface
         {
             diagnostic_updater = std::make_shared<diagnostic_updater::Updater>(node, 1.0);
             diagnostic_updater->setHardwareID("Keya-KY170G");
-            diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics);
+            diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_0);
+            diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_1);
+
+            rclcpp::spin(node);
+            rclcpp::shutdown();
         };
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Conguration successful");
+        rcl_thread = std::thread(update_func);
+
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuration successful");
 
         return hardware_interface::CallbackReturn::SUCCESS;
     }
@@ -252,22 +282,32 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        
+        double sleep_time = 0.001;
+
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
-            can_frame req_err_frame = codec.encode_error_request(can_id_list[i]);
+            can_frame req_err_0_frame = codec.encode_error_0_request(can_id_list[i]);
+            can_frame req_err_1_frame = codec.encode_error_1_request(can_id_list[i]);
             can_frame req_ang_frame = codec.encode_position_request(can_id_list[i]);
             can_frame req_curr_frame = codec.encode_current_request(can_id_list[i]);
 
+
             if (stream->is_open())
             {
-                can_write(req_err_frame, std::chrono::milliseconds(100)); // Write an error read request
+
+                /* ---------------------------------------------------------------------------- */
+                /* READ Error DATA0 */
+                std::cout << "-------------------------------------------------------" << std::endl;
+
+                can_write(req_err_0_frame, std::chrono::milliseconds(100)); // Write an error read request
 
                 can_read(std::chrono::milliseconds(100));
 
                 try
                 {
-                    error_signal = codec.decode_error_response(input_buffer);
+                    error_signal_0 = codec.decode_error_0_response(input_buffer);
+
+                    RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
 
                     clear_buffer(input_buffer);
 
@@ -279,13 +319,42 @@ namespace keya_driver_hardware_interface
                     RCLCPP_ERROR(rclcpp::get_logger("err_decode_logger"), "%s", e.what());
                 }
 
-                sleep(0.1);
+                sleep(sleep_time);
 
-                can_write(req_curr_frame, std::chrono::milliseconds(100)); // Write a current read request
+                /* ---------------------------------------------------------------------------- */
+                /* READ Error DATA1 */
+
+                can_write(req_err_1_frame, std::chrono::milliseconds(100)); // Write an error read request
+
+                can_read(std::chrono::milliseconds(100));
 
                 try
                 {
-                    can_read(std::chrono::milliseconds(100));
+                    error_signal_1 = codec.decode_error_1_response(input_buffer);
+
+                    RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+
+                    clear_buffer(input_buffer);
+
+                    // return hardware_interface::return_type::OK;
+                }
+
+                catch (std::runtime_error &e)
+                {
+                    RCLCPP_ERROR(rclcpp::get_logger("err_decode_logger"), "%s", e.what());
+                }
+
+                sleep(sleep_time);
+
+                /* ---------------------------------------------------------------------------- */
+                /* READ motor current */
+
+                can_write(req_curr_frame, std::chrono::milliseconds(100)); // Write a current read request
+
+                can_read(std::chrono::milliseconds(100));
+
+                try
+                {
 
                     current_current = codec.decode_current_response(input_buffer);
 
@@ -299,8 +368,10 @@ namespace keya_driver_hardware_interface
                     RCLCPP_ERROR(rclcpp::get_logger("curr_decode_logger"), "%s", e.what());
                 }
 
-                sleep(0.1);
+                sleep(sleep_time);
 
+                /* ---------------------------------------------------------------------------- */
+                /* READ Current Position */
 
                 can_write(req_ang_frame, std::chrono::milliseconds(100)); // Write a position read request
 

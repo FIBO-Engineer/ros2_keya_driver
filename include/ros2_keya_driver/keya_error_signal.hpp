@@ -28,22 +28,25 @@ namespace keya_driver_hardware_interface
         {
             std::string message = "";
 
-            message += LSPHS ? "Less Phase, " : "";
-            message += MOTSTALL ? "Motor Stall, " : "";
-            message += RESERVED ? "Reserved, " : "";
-            message += HALLFAIL ? "Hall Failure, " : "";
-            message += CURRSENSE ? "Current Sensing, " : "";
-            message += TTTDISC ? "232 Disconnected, " : "";
-            message += CANDISC ? "CAN Disconnected, " : "";
+            // DAT0 Error Set
             message += MOTSTALLED ? "Motor Stalled, " : "";
-            message += DISABLE ? "Disabled, " : "";
-            message += OVRVOLT ? "Overvoltage, " : "";
-            message += HRDWRPROT ? "Hardware Protect, " : "";
-            message += EEPROM ? "E2PROM, " : "";
-            message += UNDRVOLT ? "Undervoltage, " : "";
-            message += NA ? "N/A, " : "";
-            message += OVRCURR ? "Overcurrent, " : "";
+            message += CANDISC ? "CAN Disconnected, " : "";
+            message += TTTDISC ? "232 Disconnected, " : "";
+            message += CURRSENSE ? "Current Sensing, " : "";
+            message += HALLFAIL ? "Hall Failure, " : "";
+            message += RESERVED ? "Reserved, " : "";
+            message += MOTSTALL ? "Motor Stall, " : "";
+            message += LSPHS ? "Less Phase, " : "";
+
+            // DAT1 Error Set
             message += MODEFAIL ? "Mode Failure, " : "";
+            message += OVRCURR ? "Overcurrent, " : "";
+            message += NA ? "N/A, " : "";
+            message += UNDRVOLT ? "Undervoltage, " : "";
+            message += EEPROM ? "E2PROM, " : "";
+            message += HRDWRPROT ? "Hardware Protect, " : "";
+            message += OVRVOLT ? "Overvoltage, " : "";
+            message += DISABLE ? "Disabled, " : "";
 
             // Remove trailing ", " if it exists
             if (!message.empty())
