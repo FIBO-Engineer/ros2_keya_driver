@@ -280,6 +280,31 @@ namespace keya_driver_hardware_interface
         return CallbackReturn::SUCCESS;
     }
 
+    hardware_interface::CallbackReturn KeyaDriverHW::on_shutdown(const rclcpp_lifecycle::State & /*previous_state*/)
+    {
+        /*Implement on_shutdown method where hardware is shutdown gracefully.*/
+
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Disabling Motor Control...");
+
+        std::cout << "[KeyaDriverHW]: Disabling Motor Control..." << std::endl;
+
+        std::vector<bool> res;
+        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
+        {
+            can_frame position_control_disable_frame = codec.encode_position_control_disable_request(can_id_list[i]);
+            can_write(position_control_disable_frame, std::chrono::milliseconds(200));
+            can_read(std::chrono::milliseconds(200));
+            res.push_back(codec.decode_command_response(input_buffer));
+            clear_buffer(input_buffer);
+        }
+
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Disabled.");
+
+        std::cout << "[KeyaDriverHW]: Motor Control Disabled." << std::endl;
+
+        return CallbackReturn::SUCCESS;
+    }
+
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
         double sleep_time = 0.001;
