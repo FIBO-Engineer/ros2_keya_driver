@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iostream>
 #include <math.h>
+#include <typeinfo>
 
 namespace keya_driver_hardware_interface
 {
@@ -212,7 +213,7 @@ namespace keya_driver_hardware_interface
 
         for( auto &c : input_buffer.data)
         {
-            if( c == 0x60 )
+            if( c == 0x60 && c != 0x00 && c != 0xFF)
             {
                 // ErrorSignal es;
 
@@ -235,7 +236,7 @@ namespace keya_driver_hardware_interface
                 es.MOTSTALL = err_sig & (1 << 1);
                 es.LSPHS = err_sig & (1 << 0);
 
-                std::cout << "es.TTTDISC: " << es.TTTDISC << std::endl;
+                // std::cout << "es.TTTDISC: " << es.TTTDISC << std::endl;
 
                 // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA0: %d", error_data);
 
