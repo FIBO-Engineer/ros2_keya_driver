@@ -26,7 +26,7 @@ namespace keya_driver_hardware_interface
 
         if(info_.joints.size() != 1)
         {
-            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"),"This program supports on one actuator");
+            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"),"This program supports only one actuator");
             return hardware_interface::CallbackReturn::ERROR;
         }
 
@@ -236,7 +236,7 @@ namespace keya_driver_hardware_interface
             hw_commands_[i] = hw_states_[i];
         }
 
-        std::vector<bool> res;
+        // std::vector<bool> res;
 
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
@@ -254,7 +254,7 @@ namespace keya_driver_hardware_interface
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
-            res.push_back(codec.decode_command_response(input_buffer));
+            // res.push_back(codec.decode_command_response(input_buffer));
 
             clear_buffer(input_buffer);
         }
@@ -298,13 +298,13 @@ namespace keya_driver_hardware_interface
 
         rcl_thread.~thread();
 
-        std::vector<bool> res;
+        // std::vector<bool> res;
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             can_frame position_control_disable_frame = codec.encode_position_control_disable_request(can_id_list[i]);
             can_write(position_control_disable_frame, std::chrono::milliseconds(200));
             can_read(std::chrono::milliseconds(200));
-            res.push_back(codec.decode_command_response(input_buffer));
+            // res.push_back(codec.decode_command_response(input_buffer));
             clear_buffer(input_buffer);
         }
 
@@ -321,8 +321,8 @@ namespace keya_driver_hardware_interface
 
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
-            can_frame req_err_0_frame = codec.encode_error_0_request(can_id_list[i]);
-            can_frame req_err_1_frame = codec.encode_error_1_request(can_id_list[i]);
+            can_frame req_err_frame = codec.encode_error_request(can_id_list[i]);
+            // can_frame req_err_1_frame = codec.encode_error_1_request(can_id_list[i]);
             can_frame req_ang_frame = codec.encode_position_request(can_id_list[i]);
             can_frame req_curr_frame = codec.encode_current_request(can_id_list[i]);
 
@@ -334,7 +334,7 @@ namespace keya_driver_hardware_interface
                 /* READ Error DATA0 */
                 std::cout << "-------------------------------------------------------" << std::endl;
 
-                can_write(req_err_0_frame, std::chrono::milliseconds(100)); // Write an error read request
+                can_write(req_err_frame, std::chrono::milliseconds(100)); // Write an error read request
 
                 can_read(std::chrono::milliseconds(100));
 
@@ -359,7 +359,7 @@ namespace keya_driver_hardware_interface
                 /* ---------------------------------------------------------------------------- */
                 /* READ Error DATA1 */
 
-                can_write(req_err_1_frame, std::chrono::milliseconds(100)); // Write an error read request
+                can_write(req_err_frame, std::chrono::milliseconds(100)); // Write an error read request
 
                 can_read(std::chrono::milliseconds(100));
 
@@ -477,12 +477,12 @@ namespace keya_driver_hardware_interface
             can_write(req_pos_cmd, std::chrono::milliseconds(100));
             can_read(std::chrono::milliseconds(100));
 
-            if (!codec.decode_position_command_response(input_buffer))
-            {
-                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot request position command");
+            // if (!codec.decode_position_command_response(input_buffer))
+            // {
+            //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot request position command");
 
-                return hardware_interface::return_type::ERROR;
-            }
+            //     return hardware_interface::return_type::ERROR;
+            // }
             clear_buffer(input_buffer);
         }
         return hardware_interface::return_type::OK;

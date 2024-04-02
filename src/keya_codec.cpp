@@ -95,23 +95,7 @@ namespace keya_driver_hardware_interface
         return frame;
     }
 
-    can_frame KeyaCodec::encode_error_0_request(canid_t can_id)
-    {
-        can_frame frame;
-        frame.can_id = can_id;
-        frame.can_dlc = 8;
-        frame.data[0] = 0x40;
-        frame.data[1] = 0x12;
-        frame.data[2] = 0x21;
-        frame.data[3] = 0x01;
-        frame.data[4] = 0x00;
-        frame.data[5] = 0x00;
-        frame.data[6] = 0x00;
-        frame.data[7] = 0x00;
-        return frame;
-    }
-
-    can_frame KeyaCodec::encode_error_1_request(canid_t can_id)
+    can_frame KeyaCodec::encode_error_request(canid_t can_id)
     {
         can_frame frame;
         frame.can_id = can_id;
@@ -213,7 +197,7 @@ namespace keya_driver_hardware_interface
 
         for( auto &c : input_buffer.data)
         {
-            if( c == 0x60 && c != 0x00 && c != 0xFF)
+            if( c == 0x60)
             {
                 // ErrorSignal es;
 
