@@ -28,7 +28,12 @@ namespace keya_driver_hardware_interface
         RCLCPP_SHARED_PTR_DEFINITIONS(KeyaDriverHW)
         // KeyaDriverHW(std::string _device_id, std::vector<canid_t> _can_id_list);
         // KeyaDriverHW() = delete;
-        // ~KeyaDriverHW() override;
+        virtual ~KeyaDriverHW() override {
+            rclcpp_lifecycle::State dummy_state;
+            on_deactivate(dummy_state);
+            on_cleanup(dummy_state);
+            on_shutdown(dummy_state);
+        }
 
         // virtual void connect() = 0;
         // virtual void disconnect() = 0;
