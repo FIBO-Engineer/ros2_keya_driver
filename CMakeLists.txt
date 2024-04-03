@@ -31,8 +31,10 @@ ament_target_dependencies( keya_driver
   rclcpp_lifecycle
   rcl
   hardware_interface
+  controller_interface
   controller_manager
   diagnostic_updater
+  pluginlib
 
 )
 

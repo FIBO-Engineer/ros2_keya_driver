@@ -26,7 +26,7 @@ namespace keya_driver_hardware_interface
 
         if(info_.joints.size() != 1)
         {
-            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"),"This program supports on one actuator");
+            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"),"This program supports only one actuator");
             return hardware_interface::CallbackReturn::ERROR;
         }
 
@@ -188,12 +188,16 @@ namespace keya_driver_hardware_interface
     {
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Cleaning up...");
 
+        std::cout << "[KeyaDriverHW] Cleaning up..." << std::endl;
+
         if (stream->is_open())
         {
             stream->close();
         }
 
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Clean up successful");
+
+        std::cout << "[KeyaDriverHW] Clean up successful" << std::endl; 
         
         return hardware_interface::CallbackReturn::SUCCESS;
     }
@@ -232,7 +236,7 @@ namespace keya_driver_hardware_interface
             hw_commands_[i] = hw_states_[i];
         }
 
-        std::vector<bool> res;
+        // std::vector<bool> res;
 
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
@@ -250,7 +254,7 @@ namespace keya_driver_hardware_interface
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
-            res.push_back(codec.decode_command_response(input_buffer));
+            // res.push_back(codec.decode_command_response(input_buffer));
 
             clear_buffer(input_buffer);
         }
@@ -263,7 +267,9 @@ namespace keya_driver_hardware_interface
     hardware_interface::CallbackReturn KeyaDriverHW::on_deactivate(const rclcpp_lifecycle::State & /*previous_state*/)
     {
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Disabling Motor Control...");
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Deactivating Motor Control...");
+
+        std::cout << "[KeyaDriverHW]: Deactivating Motor Control..." << std::endl;
 
         std::vector<bool> res;
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
@@ -275,7 +281,9 @@ namespace keya_driver_hardware_interface
             clear_buffer(input_buffer);
         }
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Disabled.");
+        std::cout << "[KeyaDriverHW]: Motor Control Deactivated." << std::endl;
+
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Deactivated.");
 
         return CallbackReturn::SUCCESS;
     }
@@ -284,23 +292,30 @@ namespace keya_driver_hardware_interface
     {
         /*Implement on_shutdown method where hardware is shutdown gracefully.*/
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Disabling Motor Control...");
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Shutting Down Motor Control...");
 
-        std::cout << "[KeyaDriverHW]: Disabling Motor Control..." << std::endl;
+        std::cout << "[KeyaDriverHW]: Shutting Down Motor Control..." << std::endl;
 
-        std::vector<bool> res;
-        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
-        {
-            can_frame position_control_disable_frame = codec.encode_position_control_disable_request(can_id_list[i]);
-            can_write(position_control_disable_frame, std::chrono::milliseconds(200));
-            can_read(std::chrono::milliseconds(200));
-            res.push_back(codec.decode_command_response(input_buffer));
-            clear_buffer(input_buffer);
-        }
+        // rclcpp_lifecycle::State test_state;
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Disabled.");
+        rcl_thread.~thread();
 
-        std::cout << "[KeyaDriverHW]: Motor Control Disabled." << std::endl;
+        // on_deactivate(test_state);
+        // on_cleanup(test_state);
+
+        // // std::vector<bool> res;
+        // for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
+        // {
+        //     can_frame position_control_disable_frame = codec.encode_position_control_disable_request(can_id_list[i]);
+        //     can_write(position_control_disable_frame, std::chrono::milliseconds(200));
+        //     can_read(std::chrono::milliseconds(200));
+        //     // res.push_back(codec.decode_command_response(input_buffer));
+        //     clear_buffer(input_buffer);
+        // }
+
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Shutdown.");
+
+        std::cout << "[KeyaDriverHW]: Motor Control Shutdown." << std::endl;
 
         return CallbackReturn::SUCCESS;
     }
@@ -311,8 +326,8 @@ namespace keya_driver_hardware_interface
 
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
-            can_frame req_err_0_frame = codec.encode_error_0_request(can_id_list[i]);
-            can_frame req_err_1_frame = codec.encode_error_1_request(can_id_list[i]);
+            can_frame req_err_frame = codec.encode_error_request(can_id_list[i]);
+            // can_frame req_err_1_frame = codec.encode_error_1_request(can_id_list[i]);
             can_frame req_ang_frame = codec.encode_position_request(can_id_list[i]);
             can_frame req_curr_frame = codec.encode_current_request(can_id_list[i]);
 
@@ -324,7 +339,7 @@ namespace keya_driver_hardware_interface
                 /* READ Error DATA0 */
                 std::cout << "-------------------------------------------------------" << std::endl;
 
-                can_write(req_err_0_frame, std::chrono::milliseconds(100)); // Write an error read request
+                can_write(req_err_frame, std::chrono::milliseconds(100)); // Write an error read request
 
                 can_read(std::chrono::milliseconds(100));
 
@@ -334,22 +349,21 @@ namespace keya_driver_hardware_interface
 
                     RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
 
-                    clear_buffer(input_buffer);
+                    
 
                     // return hardware_interface::return_type::OK;
-                }
-
-                catch (std::runtime_error &e)
+                } catch (std::runtime_error &e)
                 {
                     RCLCPP_ERROR(rclcpp::get_logger("err_decode_logger"), "%s", e.what());
                 }
+                clear_buffer(input_buffer);
 
-                sleep(sleep_time);
+                // sleep(sleep_time);
 
                 /* ---------------------------------------------------------------------------- */
                 /* READ Error DATA1 */
 
-                can_write(req_err_1_frame, std::chrono::milliseconds(100)); // Write an error read request
+                can_write(req_err_frame, std::chrono::milliseconds(100)); // Write an error read request
 
                 can_read(std::chrono::milliseconds(100));
 
@@ -362,9 +376,7 @@ namespace keya_driver_hardware_interface
                     clear_buffer(input_buffer);
 
                     // return hardware_interface::return_type::OK;
-                }
-
-                catch (std::runtime_error &e)
+                } catch (std::runtime_error &e)
                 {
                     RCLCPP_ERROR(rclcpp::get_logger("err_decode_logger"), "%s", e.what());
                 }
@@ -512,7 +524,7 @@ namespace keya_driver_hardware_interface
 
     void KeyaDriverHW::clear_buffer(can_frame &input_buffer)
     {
-        for (int i = 0; i < input_buffer.can_dlc; i++)
+        for (int i = 0; i < CAN_MAX_DLC; i++)
         {
             input_buffer.data[i] = 0x00;
         }

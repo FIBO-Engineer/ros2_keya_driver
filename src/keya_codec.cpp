@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iostream>
 #include <math.h>
+#include <typeinfo>
 
 namespace keya_driver_hardware_interface
 {
@@ -94,23 +95,7 @@ namespace keya_driver_hardware_interface
         return frame;
     }
 
-    can_frame KeyaCodec::encode_error_0_request(canid_t can_id)
-    {
-        can_frame frame;
-        frame.can_id = can_id;
-        frame.can_dlc = 8;
-        frame.data[0] = 0x40;
-        frame.data[1] = 0x12;
-        frame.data[2] = 0x21;
-        frame.data[3] = 0x01;
-        frame.data[4] = 0x00;
-        frame.data[5] = 0x00;
-        frame.data[6] = 0x00;
-        frame.data[7] = 0x00;
-        return frame;
-    }
-
-    can_frame KeyaCodec::encode_error_1_request(canid_t can_id)
+    can_frame KeyaCodec::encode_error_request(canid_t can_id)
     {
         can_frame frame;
         frame.can_id = can_id;
@@ -210,40 +195,78 @@ namespace keya_driver_hardware_interface
 
         ErrorSignal es;
 
-        for( auto &c : input_buffer.data)
+        // for( auto &c : input_buffer.data)
+        // {
+        //     if( c == 0x60)
+        //     {
+        //         // ErrorSignal es;
+
+        //         // uint16_t error_data = 0;
+
+        //         // int32_t error_dat32 = error_data;
+
+        //         // *(uint16_t *)(&error_data) = input_buffer.data[5];
+
+        //         // uint16_t err_sig = static_cast<uint16_t>(error_data);
+
+        //         uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[5]);
+
+        //         // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_0: %d", err_sig);
+
+        //         es.MOTSTALLED = err_sig & (1 << 7);
+        //         es.CANDISC = err_sig & (1 << 6);
+        //         es.TTTDISC = err_sig & (1 << 5);
+        //         es.CURRSENSE = err_sig & (1 << 4);
+        //         es.HALLFAIL = err_sig & (1 << 3);
+        //         es.RESERVED = err_sig & (1 << 2);
+        //         es.MOTSTALL = err_sig & (1 << 1);
+        //         es.LSPHS = err_sig & (1 << 0);
+
+        //         // std::cout << "es.TTTDISC: " << es.TTTDISC << std::endl;
+
+        //         // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA0: %d", error_data);
+
+        //         // return es;
+        //     }
+        // }
+
+        if(input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x12 && input_buffer.data[2] == 0x21)
         {
-            if( c == 0x60 )
-            {
-                // ErrorSignal es;
+            // ErrorSignal es;
 
-                uint16_t error_data = 0;
+            // uint16_t error_data = 0;
 
-                // int32_t error_dat32 = error_data;
+            // int32_t error_dat32 = error_data;
 
-                *(uint16_t *)(&error_data) = input_buffer.data[5];
+            // *(uint16_t *)(&error_data) = input_buffer.data[5];
 
-                uint16_t err_sig = static_cast<uint16_t>(error_data);
+            // uint16_t err_sig = static_cast<uint16_t>(error_data);
 
-                // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_0: %d", err_sig);
+            uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[5]);
 
-                es.MOTSTALLED = err_sig & (1 << 7);
-                es.CANDISC = err_sig & (1 << 6);
-                es.TTTDISC = err_sig & (1 << 5);
-                es.CURRSENSE = err_sig & (1 << 4);
-                es.HALLFAIL = err_sig & (1 << 3);
-                es.RESERVED = err_sig & (1 << 2);
-                es.MOTSTALL = err_sig & (1 << 1);
-                es.LSPHS = err_sig & (1 << 0);
+            // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_0: %d", err_sig);
 
-                std::cout << "es.TTTDISC: " << es.TTTDISC << std::endl;
+            es.MOTSTALLED = err_sig & (1 << 7);
+            es.CANDISC = err_sig & (1 << 6);
+            es.TTTDISC = err_sig & (1 << 5);
+            es.CURRSENSE = err_sig & (1 << 4);
+            es.HALLFAIL = err_sig & (1 << 3);
+            es.RESERVED = err_sig & (1 << 2);
+            es.MOTSTALL = err_sig & (1 << 1);
+            es.LSPHS = err_sig & (1 << 0);
 
-                // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA0: %d", error_data);
+            std::cout << "es.TTTDISC: " << es.TTTDISC << std::endl;
 
-                // return es;
-            }
+            // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA0: %d", error_data);
+
+            return es;
         }
+        else
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
 
-        return es;
+            return es;
+        }
 
     }
 
@@ -252,42 +275,84 @@ namespace keya_driver_hardware_interface
 
         ErrorSignal1 es1;
 
-        for(auto &c : input_buffer.data)
+        // for(auto &c : input_buffer.data)
+        // {
+        //     if( c == 0x60 )
+        //     {
+        //         // ErrorSignal es1;
+
+        //         // uint16_t error_data = 0;
+
+        //         // int32_t error_dat32 = error_data;
+
+        //         // *(uint16_t *)(&error_data) = input_buffer.data[4];
+
+        //         uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[4]);
+
+        //         // uint16_t err_sig = static_cast<uint16_t>(error_data);
+
+        //         // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_1: %d", err_sig);
+
+        //         es1.MODEFAIL = err_sig & (1 << 7);
+        //         es1.OVRCURR = err_sig & (1 << 6);
+        //         es1.NA = err_sig & (1 << 5);
+        //         es1.UNDRVOLT = err_sig & (1 << 4);
+        //         es1.EEPROM = err_sig & (1 << 3);
+        //         es1.HRDWRPROT = err_sig & (1 << 2);
+        //         es1.OVRVOLT = err_sig & (1 << 1);
+        //         es1.DISABLE = err_sig & (1 << 0);
+
+        //         // std::cout << "es1.DISABLE: " << es1.DISABLE << std::endl;
+        //         // std::cout << "es1.OVRCURR: " << es1.OVRCURR << std::endl;
+
+        //         // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA1: %d", error_data);
+        //         // RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT2: %d", input_buffer.data[5]);
+
+        //         // return es1;
+        //     }
+        // }
+
+
+        if(input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x12 && input_buffer.data[2] == 0x21)
         {
-            if( c == 0x60 )
-            {
-                // ErrorSignal es1;
+            // ErrorSignal es1;
 
-                uint16_t error_data = 0;
+            // uint16_t error_data = 0;
 
-                // int32_t error_dat32 = error_data;
+            // int32_t error_dat32 = error_data;
 
-                *(uint16_t *)(&error_data) = input_buffer.data[4];
+            // *(uint16_t *)(&error_data) = input_buffer.data[4];
 
-                uint16_t err_sig = static_cast<uint16_t>(error_data);
+            uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[4]);
 
-                // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_1: %d", err_sig);
+            // uint16_t err_sig = static_cast<uint16_t>(error_data);
 
-                es1.MODEFAIL = err_sig & (1 << 7);
-                es1.OVRCURR = err_sig & (1 << 6);
-                es1.NA = err_sig & (1 << 5);
-                es1.UNDRVOLT = err_sig & (1 << 4);
-                es1.EEPROM = err_sig & (1 << 3);
-                es1.HRDWRPROT = err_sig & (1 << 2);
-                es1.OVRVOLT = err_sig & (1 << 1);
-                es1.DISABLE = err_sig & (1 << 0);
+            // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_1: %d", err_sig);
 
-                // std::cout << "es1.DISABLE: " << es1.DISABLE << std::endl;
-                // std::cout << "es1.OVRCURR: " << es1.OVRCURR << std::endl;
+            es1.MODEFAIL = err_sig & (1 << 7);
+            es1.OVRCURR = err_sig & (1 << 6);
+            es1.NA = err_sig & (1 << 5);
+            es1.UNDRVOLT = err_sig & (1 << 4);
+            es1.EEPROM = err_sig & (1 << 3);
+            es1.HRDWRPROT = err_sig & (1 << 2);
+            es1.OVRVOLT = err_sig & (1 << 1);
+            es1.DISABLE = err_sig & (1 << 0);
 
-                // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA1: %d", error_data);
-                // RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT2: %d", input_buffer.data[5]);
+            std::cout << "es1.DISABLE: " << es1.DISABLE << std::endl;
+            std::cout << "es1.OVRCURR: " << es1.OVRCURR << std::endl;
 
-                // return es1;
-            }
+            // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA1: %d", error_data);
+            // RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT2: %d", input_buffer.data[5]);
+
+            return es1;
         }
+        else
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
 
-        return es1;
+            return es1;
+        }
+        // return es1;
 
     }
 
