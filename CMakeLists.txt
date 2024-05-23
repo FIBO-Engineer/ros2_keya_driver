@@ -13,10 +13,18 @@ find_package(std_msgs REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(controller_manager REQUIRED)
 find_package(diagnostic_updater REQUIRED)
+find_package(example_interfaces REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(
   include
 )
+
+# Add service files
+# find_package(rosidl_default_generators REQUIRED)
+# rosidl_generate_interfaces(${PROJECT_NAME}
+#   "srv/EmptyTrigger.srv"
+# )
 
 add_library(
   keya_driver
@@ -35,6 +43,7 @@ ament_target_dependencies( keya_driver
   controller_manager
   diagnostic_updater
   pluginlib
+  std_srvs
 
 )
 

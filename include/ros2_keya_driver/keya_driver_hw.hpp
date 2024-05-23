@@ -17,6 +17,8 @@
 
 #include "rclcpp/macros.hpp"
 
+#include <std_msgs/msg/float64.hpp>
+
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "diagnostic_updater/diagnostic_status_wrapper.hpp"
 
@@ -52,6 +54,7 @@ namespace keya_driver_hardware_interface
         CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
         CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
         CallbackReturn on_shutdown(const rclcpp_lifecycle::State & previous_state) override;
+        
         hardware_interface::return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
         hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
@@ -92,6 +95,16 @@ namespace keya_driver_hardware_interface
         void produce_diagnostics_1(diagnostic_updater::DiagnosticStatusWrapper &stat);
         std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater;
 
+        // void homing();
+        bool reach_current_threshold(double threshold);
+        void handle_service();
+
+        void homing_callback();
+
+        void set_offset();
+
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr homing_publisher;
+
         // products
         double current_position;
         double current_command;
@@ -99,6 +112,7 @@ namespace keya_driver_hardware_interface
         ErrorSignal error_signal_0;
         ErrorSignal1 error_signal_1;
         double current_current;
+        double current_threshold;
         // StatusSignal status_signal;
 
     };

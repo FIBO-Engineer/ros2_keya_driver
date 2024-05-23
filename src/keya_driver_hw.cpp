@@ -3,16 +3,24 @@
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "hardware_interface/actuator_interface.hpp"
 
+#include <std_srvs/srv/trigger.hpp>
+
 #include "diagnostic_updater/diagnostic_updater.hpp"
 
 #include <rclcpp/rclcpp.hpp>
 #include <algorithm>
+#include <thread>
+#include <mutex>
+#include <vector>
 #include <chrono>
 
 #include <iostream>
 
+
 namespace keya_driver_hardware_interface
 {
+    using namespace std::chrono_literals;
+
     hardware_interface::CallbackReturn KeyaDriverHW::on_init(const hardware_interface::HardwareInfo & info)
     {
         if (hardware_interface::ActuatorInterface::on_init(info) != CallbackReturn::SUCCESS)
@@ -541,6 +549,56 @@ namespace keya_driver_hardware_interface
             io_context.run();
         }
     }
+
+    // void KeyaDriverHW::homing()
+    // {
+    //     double current_threshold = 10;
+    //     // turning wheel all the way to the left
+    //     publisher_ = node->create_publisher<std_msgs::msg::Float64>("/position_controllers/command", 10);
+
+    // }
+
+    void KeyaDriverHW::set_offset()
+    {
+        
+    }
+
+    void KeyaDriverHW::homing_callback()
+    {
+        current_threshold = 10;
+        std_msgs::msg::Float64 turn_left;
+        turn_left.data = 20.0;
+        
+        while(!reach_current_threshold(current_threshold))
+        {
+            homing_publisher->publish(turn_left);
+            std::this_thread::sleep_for(50ms);
+        }
+
+        set_offset();
+
+    }
+
+    void KeyaDriverHW::handle_service()
+    {
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service = 
+            node->create_service<std_srvs::srv::Trigger>("homing", homing_callback);
+
+        homing_publisher = node->create_publisher<std_msgs::msg::Float64>("/position_controllers/command", 10);
+        rclcpp::spin(node);
+    }
+
+    bool KeyaDriverHW::reach_current_threshold(double current_threshold)
+    {
+        if (fabs(current_current) >= current_threshold){
+            return true;
+        }
+        else{
+            return false;
+
+        }
+    }
+
 }
 
 #include "pluginlib/class_list_macros.hpp"
