@@ -429,7 +429,9 @@ namespace keya_driver_hardware_interface
                         // read_mtx.lock();
 
                         // error_signal = codec.decode_error_response(input_buffer);
-                        current_position = codec.decode_position_response(input_buffer);
+                        raw_position = codec.decode_position_response(input_buffer);
+
+                        current_position = raw_position + pos_offset;
 
                         a_curr_pos[i] = current_position;
 
@@ -478,7 +480,9 @@ namespace keya_driver_hardware_interface
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "hw_command_[0]: %f", hw_commands_[0]);
 
-            a_cmd_pos[i] = hw_commands_[0];
+            double enc_pos = hw_commands_[0]; 
+
+            a_cmd_pos[i] = enc_pos - pos_offset;
             
             req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i]);
 
@@ -544,7 +548,7 @@ namespace keya_driver_hardware_interface
         io_context.run_for(timeout);
         if (!io_context.stopped())
         {
-            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Operation Timeout, probably due to no data return from the devicde.");
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Operation Timeout, probably due to no data return from the device.");
             stream->close();
             io_context.run();
         }
@@ -558,17 +562,33 @@ namespace keya_driver_hardware_interface
 
     // }
 
-    void KeyaDriverHW::set_offset()
+    // void KeyaDriverHW::set_offset(double input_pos)
+    // {
+    //     pos_set = 10;
+    //     pos_offset = pos_set - input_pos;        
+    // }
+
+    double KeyaDriverHW::set_offset()
     {
-        
+        pos_set = 10;
+        pos_offset = pos_set - raw_position;
+        return pos_offset;
     }
 
-    void KeyaDriverHW::homing_callback()
+    void KeyaDriverHW::homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
+
+        response->success = true;
+        response->message = "";
+
+        RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing initialized...");
+
         current_threshold = 10;
         std_msgs::msg::Float64 turn_left;
         turn_left.data = 20.0;
         
+        // turn wheel to the left
         while(!reach_current_threshold(current_threshold))
         {
             homing_publisher->publish(turn_left);
@@ -577,12 +597,14 @@ namespace keya_driver_hardware_interface
 
         set_offset();
 
+        RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing successful.");
+
     }
 
     void KeyaDriverHW::handle_service()
     {
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service = 
-            node->create_service<std_srvs::srv::Trigger>("homing", homing_callback);
+            node->create_service<std_srvs::srv::Trigger>("homing", std::bind(&KeyaDriverHW::homing_callback, this,std::placeholders::_1, std::placeholders::_2));
 
         homing_publisher = node->create_publisher<std_msgs::msg::Float64>("/position_controllers/command", 10);
         rclcpp::spin(node);

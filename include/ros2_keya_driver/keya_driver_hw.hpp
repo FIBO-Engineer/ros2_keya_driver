@@ -18,6 +18,7 @@
 #include "rclcpp/macros.hpp"
 
 #include <std_msgs/msg/float64.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "diagnostic_updater/diagnostic_status_wrapper.hpp"
@@ -99,13 +100,17 @@ namespace keya_driver_hardware_interface
         bool reach_current_threshold(double threshold);
         void handle_service();
 
-        void homing_callback();
+        void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
-        void set_offset();
+        // void set_offset(double input_pos);
+
+        double set_offset();
 
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr homing_publisher;
 
         // products
+        double raw_position;
         double current_position;
         double current_command;
         uint16_t alarm_code;
@@ -113,6 +118,8 @@ namespace keya_driver_hardware_interface
         ErrorSignal1 error_signal_1;
         double current_current;
         double current_threshold;
+        double pos_offset = 0;
+        double pos_set;
         // StatusSignal status_signal;
 
     };
