@@ -441,7 +441,12 @@ namespace keya_driver_hardware_interface
                         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
                         raw_position = codec.decode_position_response(input_buffer);
 
+                        RCLCPP_INFO(rclcpp::get_logger("OFFSET_IN_READ"), "Offset in Read: %f", pos_offset);
+                        RCLCPP_INFO(rclcpp::get_logger("RAW_IN_READ"), "Raw in Read: %f", raw_position);
+
                         current_position = raw_position + pos_offset;
+
+                        RCLCPP_INFO(rclcpp::get_logger("CURRENTPOS_IN_READ"), "Current pos in Read: %f", current_position);
 
                         a_curr_pos[i] = current_position;
 
@@ -492,7 +497,7 @@ namespace keya_driver_hardware_interface
 
             double enc_pos = hw_commands_[0]; 
 
-            a_cmd_pos[i] = enc_pos - pos_offset;
+            a_cmd_pos[i] = enc_pos; // - pos_offset;
             
             req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i]);
 
@@ -583,8 +588,8 @@ namespace keya_driver_hardware_interface
         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
         // pos_set = 10;
         RCLCPP_INFO(rclcpp::get_logger("RAWPOS_LOGGER"), "raw_pos: %f", raw_position);
-        pos_offset = 10.0 - raw_position;
-        RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET"), "Pos_offset: %f", pos_offset);
+        pos_offset = 11.3 - raw_position;
+        // RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET"), "Pos_offset: %f", pos_offset);
         return pos_offset;
     }
 
@@ -597,7 +602,7 @@ namespace keya_driver_hardware_interface
 
         RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing initialized...");
 
-        current_threshold = 11;
+        current_threshold = 17;
         std_msgs::msg::Float64MultiArray turn_left;
         turn_left.data.resize(1);
         turn_left.data[0] = 20.0;
@@ -611,17 +616,18 @@ namespace keya_driver_hardware_interface
 
         set_offset();
         RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET_OUT"), "Pos_offset: %f", pos_offset);
+        RCLCPP_INFO(rclcpp::get_logger("CURRENT_POS_LOGGER"), "Current_POS: %f", current_position);
         std_msgs::msg::Float64MultiArray turn_right;
         turn_right.data.resize(1);
         // centering.data[0] = pos_offset;
-        turn_right.data[0] = 0.0 - pos_offset;
+        turn_right.data[0] = -pos_offset;
         homing_publisher->publish(turn_right);
         // std_msgs::msg::Float64MultiArray centering;
         // centering.data.resize(1);
         // centering.data[0] = 0.0 - pos_offset;
         // homing_publisher->publish(centering);
 
-        RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing successful.");
+        // RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing successful.");
 
         // rclcpp::spin(node);
 

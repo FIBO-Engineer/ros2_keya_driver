@@ -116,19 +116,19 @@ namespace keya_driver_hardware_interface
         
         if (input_buffer.data[0] == 0x60)
         {
-            RCLCPP_INFO(rclcpp::get_logger("decode_logger"),"Byte 0 matched");
+            // RCLCPP_INFO(rclcpp::get_logger("decode_logger"),"Byte 0 matched");
             return true;
         }
         else 
         {
-            RCLCPP_ERROR(rclcpp::get_logger("decode_logger"),"Error byte 0 returns: %u", input_buffer.data[0]);
+            // RCLCPP_ERROR(rclcpp::get_logger("decode_logger"),"Error byte 0 returns: %u", input_buffer.data[0]);
             return false;
         }
     }
 
     bool KeyaCodec::decode_position_command_response(can_frame &input_buffer)
     {
-        RCLCPP_INFO(rclcpp::get_logger("cmd_decode_logger"), "Current byte 0: %u", input_buffer.data[0]);
+        // RCLCPP_INFO(rclcpp::get_logger("cmd_decode_logger"), "Current byte 0: %u", input_buffer.data[0]);
 
         return true;
     }
@@ -255,7 +255,7 @@ namespace keya_driver_hardware_interface
             es.MOTSTALL = err_sig & (1 << 1);
             es.LSPHS = err_sig & (1 << 0);
 
-            std::cout << "es.TTTDISC: " << es.TTTDISC << std::endl;
+            // std::cout << "es.TTTDISC: " << es.TTTDISC << std::endl;
 
             // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA0: %d", error_data);
 
@@ -263,7 +263,7 @@ namespace keya_driver_hardware_interface
         }
         else
         {
-            RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
+            // RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
 
             return es;
         }
@@ -338,8 +338,8 @@ namespace keya_driver_hardware_interface
             es1.OVRVOLT = err_sig & (1 << 1);
             es1.DISABLE = err_sig & (1 << 0);
 
-            std::cout << "es1.DISABLE: " << es1.DISABLE << std::endl;
-            std::cout << "es1.OVRCURR: " << es1.OVRCURR << std::endl;
+            // std::cout << "es1.DISABLE: " << es1.DISABLE << std::endl;
+            // std::cout << "es1.OVRCURR: " << es1.OVRCURR << std::endl;
 
             // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA1: %d", error_data);
             // RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT2: %d", input_buffer.data[5]);
@@ -348,7 +348,7 @@ namespace keya_driver_hardware_interface
         }
         else
         {
-            RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
+            // RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
 
             return es1;
         }
