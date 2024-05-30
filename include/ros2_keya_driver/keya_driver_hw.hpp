@@ -19,6 +19,7 @@
 
 #include <std_msgs/msg/float64.hpp>
 #include <std_srvs/srv/trigger.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "diagnostic_updater/diagnostic_status_wrapper.hpp"
@@ -88,6 +89,8 @@ namespace keya_driver_hardware_interface
 
         // raw object
         std::mutex read_mtx;
+        std::mutex current_reading_mutex;
+        std::mutex rawpos_reading_mutex;
 
         // diagnostic
         rclcpp::Node::SharedPtr node;
@@ -95,6 +98,8 @@ namespace keya_driver_hardware_interface
         void produce_diagnostics_0(diagnostic_updater::DiagnosticStatusWrapper &stat);
         void produce_diagnostics_1(diagnostic_updater::DiagnosticStatusWrapper &stat);
         std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater;
+
+        // Homing Service
 
         // void homing();
         bool reach_current_threshold(double threshold);
@@ -107,7 +112,8 @@ namespace keya_driver_hardware_interface
 
         double set_offset();
 
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr homing_publisher;
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr homing_publisher;
 
         // products
         double raw_position;

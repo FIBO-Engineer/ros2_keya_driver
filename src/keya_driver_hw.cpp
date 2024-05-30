@@ -181,11 +181,20 @@ namespace keya_driver_hardware_interface
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_0);
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_1);
 
+            homing_service = node->create_service<std_srvs::srv::Trigger>("home", std::bind(&KeyaDriverHW::homing_callback, this,std::placeholders::_1, std::placeholders::_2));
+
+            homing_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
+
             rclcpp::spin(node);
             rclcpp::shutdown();
         };
 
         rcl_thread = std::thread(update_func);
+        // rcl_thread_2 = std::thread();
+
+        // homing_service = node->create_service<std_srvs::srv::Trigger>("home", std::bind(&KeyaDriverHW::homing_callback, this, std::placeholders::_1, std::placeholders::_2));
+
+        // homing_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
 
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuration successful");
 
@@ -400,7 +409,7 @@ namespace keya_driver_hardware_interface
 
                 try
                 {
-
+                    const std::lock_guard<std::mutex> lock(current_reading_mutex);
                     current_current = codec.decode_current_response(input_buffer);
 
                     clear_buffer(input_buffer);
@@ -429,6 +438,7 @@ namespace keya_driver_hardware_interface
                         // read_mtx.lock();
 
                         // error_signal = codec.decode_error_response(input_buffer);
+                        const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
                         raw_position = codec.decode_position_response(input_buffer);
 
                         current_position = raw_position + pos_offset;
@@ -570,8 +580,11 @@ namespace keya_driver_hardware_interface
 
     double KeyaDriverHW::set_offset()
     {
-        pos_set = 10;
-        pos_offset = pos_set - raw_position;
+        const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
+        // pos_set = 10;
+        RCLCPP_INFO(rclcpp::get_logger("RAWPOS_LOGGER"), "raw_pos: %f", raw_position);
+        pos_offset = 10.0 - raw_position;
+        RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET"), "Pos_offset: %f", pos_offset);
         return pos_offset;
     }
 
@@ -584,10 +597,11 @@ namespace keya_driver_hardware_interface
 
         RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing initialized...");
 
-        current_threshold = 10;
-        std_msgs::msg::Float64 turn_left;
-        turn_left.data = 20.0;
-        
+        current_threshold = 11;
+        std_msgs::msg::Float64MultiArray turn_left;
+        turn_left.data.resize(1);
+        turn_left.data[0] = 20.0;
+
         // turn wheel to the left
         while(!reach_current_threshold(current_threshold))
         {
@@ -596,26 +610,40 @@ namespace keya_driver_hardware_interface
         }
 
         set_offset();
+        RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET_OUT"), "Pos_offset: %f", pos_offset);
+        std_msgs::msg::Float64MultiArray turn_right;
+        turn_right.data.resize(1);
+        // centering.data[0] = pos_offset;
+        turn_right.data[0] = 0.0 - pos_offset;
+        homing_publisher->publish(turn_right);
+        // std_msgs::msg::Float64MultiArray centering;
+        // centering.data.resize(1);
+        // centering.data[0] = 0.0 - pos_offset;
+        // homing_publisher->publish(centering);
 
         RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing successful.");
 
+        // rclcpp::spin(node);
+
     }
 
-    void KeyaDriverHW::handle_service()
-    {
-        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service = 
-            node->create_service<std_srvs::srv::Trigger>("homing", std::bind(&KeyaDriverHW::homing_callback, this,std::placeholders::_1, std::placeholders::_2));
+    // void KeyaDriverHW::handle_service()
+    // {
+    //     homing_service = node->create_service<std_srvs::srv::Trigger>("home", std::bind(&KeyaDriverHW::homing_callback, this,std::placeholders::_1, std::placeholders::_2));
 
-        homing_publisher = node->create_publisher<std_msgs::msg::Float64>("/position_controllers/command", 10);
-        rclcpp::spin(node);
-    }
+    //     homing_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
+    //     rclcpp::spin(node);
+    // }
 
     bool KeyaDriverHW::reach_current_threshold(double current_threshold)
     {
+        const std::lock_guard<std::mutex> lock(current_reading_mutex);
         if (fabs(current_current) >= current_threshold){
+            RCLCPP_INFO(rclcpp::get_logger("THRESHOLD_LOGGER"), "THRESHOLD REACHED");
             return true;
         }
         else{
+            RCLCPP_INFO(rclcpp::get_logger("THRESHOLD_LOGGER"), "FALSE");
             return false;
 
         }
