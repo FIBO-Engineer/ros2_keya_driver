@@ -439,12 +439,12 @@ namespace keya_driver_hardware_interface
 
                         // error_signal = codec.decode_error_response(input_buffer);
                         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
-                        raw_position = codec.decode_position_response(input_buffer);
+                        raw_position = codec.decode_position_response(input_buffer) + pos_offset;
 
                         RCLCPP_INFO(rclcpp::get_logger("OFFSET_IN_READ"), "Offset in Read: %f", pos_offset);
                         RCLCPP_INFO(rclcpp::get_logger("RAW_IN_READ"), "Raw in Read: %f", raw_position);
 
-                        current_position = raw_position + pos_offset;
+                        current_position = raw_position; // + pos_offset;
 
                         RCLCPP_INFO(rclcpp::get_logger("CURRENTPOS_IN_READ"), "Current pos in Read: %f", current_position);
 
@@ -499,7 +499,7 @@ namespace keya_driver_hardware_interface
 
             a_cmd_pos[i] = enc_pos; // - pos_offset;
             
-            req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i]);
+            req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i] - pos_offset);
 
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Commanded position: %f", a_cmd_pos[i]);
 
