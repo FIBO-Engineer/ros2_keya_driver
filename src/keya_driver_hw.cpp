@@ -182,8 +182,10 @@ namespace keya_driver_hardware_interface
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_1);
 
             homing_service = node->create_service<std_srvs::srv::Trigger>("home", std::bind(&KeyaDriverHW::homing_callback, this,std::placeholders::_1, std::placeholders::_2));
-
             homing_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
+
+            centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
+            centering_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
 
             rclcpp::spin(node);
             rclcpp::shutdown();
@@ -600,12 +602,12 @@ namespace keya_driver_hardware_interface
         response->success = true;
         response->message = "";
 
-        RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing initialized...");
+        RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing Initialized...");
 
         current_threshold = 17;
         std_msgs::msg::Float64MultiArray turn_left;
         turn_left.data.resize(1);
-        turn_left.data[0] = 20.0;
+        turn_left.data[0] = 25.0;
 
         // turn wheel to the left
         while(!reach_current_threshold(current_threshold))
@@ -620,7 +622,8 @@ namespace keya_driver_hardware_interface
         std_msgs::msg::Float64MultiArray turn_right;
         turn_right.data.resize(1);
         // centering.data[0] = pos_offset;
-        turn_right.data[0] = -pos_offset;
+        // turn_right.data[0] = -pos_offset;
+        turn_right.data[0] = 0.00;
         homing_publisher->publish(turn_right);
         // std_msgs::msg::Float64MultiArray centering;
         // centering.data.resize(1);
@@ -631,6 +634,21 @@ namespace keya_driver_hardware_interface
 
         // rclcpp::spin(node);
 
+    }
+
+    void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+                                                    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+    {
+        response->success = true;
+        response->message = "";
+
+        RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Centering Initialized...");
+
+        std_msgs::msg::Float64MultiArray center;
+        center.data.resize(1);
+        // center.data[0] = -pos_offset;
+        center.data[0] = 0.00;
+        centering_publisher->publish(center);
     }
 
     // void KeyaDriverHW::handle_service()

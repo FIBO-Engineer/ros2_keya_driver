@@ -108,12 +108,18 @@ namespace keya_driver_hardware_interface
         void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
+        void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+
         // void set_offset(double input_pos);
 
         double set_offset();
 
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
         rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr homing_publisher;
+
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr centering_publisher;
 
         // products
         double raw_position;
