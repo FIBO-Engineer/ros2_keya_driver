@@ -623,7 +623,7 @@ namespace keya_driver_hardware_interface
         turn_right.data.resize(1);
         // centering.data[0] = pos_offset;
         // turn_right.data[0] = -pos_offset;
-        turn_right.data[0] = 0.00;
+        turn_right.data[0] = 0.000000;
         homing_publisher->publish(turn_right);
         // std_msgs::msg::Float64MultiArray centering;
         // centering.data.resize(1);

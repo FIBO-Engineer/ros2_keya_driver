@@ -194,57 +194,9 @@ namespace keya_driver_hardware_interface
     {
 
         ErrorSignal es;
-
-        // for( auto &c : input_buffer.data)
-        // {
-        //     if( c == 0x60)
-        //     {
-        //         // ErrorSignal es;
-
-        //         // uint16_t error_data = 0;
-
-        //         // int32_t error_dat32 = error_data;
-
-        //         // *(uint16_t *)(&error_data) = input_buffer.data[5];
-
-        //         // uint16_t err_sig = static_cast<uint16_t>(error_data);
-
-        //         uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[5]);
-
-        //         // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_0: %d", err_sig);
-
-        //         es.MOTSTALLED = err_sig & (1 << 7);
-        //         es.CANDISC = err_sig & (1 << 6);
-        //         es.TTTDISC = err_sig & (1 << 5);
-        //         es.CURRSENSE = err_sig & (1 << 4);
-        //         es.HALLFAIL = err_sig & (1 << 3);
-        //         es.RESERVED = err_sig & (1 << 2);
-        //         es.MOTSTALL = err_sig & (1 << 1);
-        //         es.LSPHS = err_sig & (1 << 0);
-
-        //         // std::cout << "es.TTTDISC: " << es.TTTDISC << std::endl;
-
-        //         // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA0: %d", error_data);
-
-        //         // return es;
-        //     }
-        // }
-
         if(input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x12 && input_buffer.data[2] == 0x21)
         {
-            // ErrorSignal es;
-
-            // uint16_t error_data = 0;
-
-            // int32_t error_dat32 = error_data;
-
-            // *(uint16_t *)(&error_data) = input_buffer.data[5];
-
-            // uint16_t err_sig = static_cast<uint16_t>(error_data);
-
             uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[5]);
-
-            // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_0: %d", err_sig);
 
             es.MOTSTALLED = err_sig & (1 << 7);
             es.CANDISC = err_sig & (1 << 6);
@@ -254,10 +206,6 @@ namespace keya_driver_hardware_interface
             es.RESERVED = err_sig & (1 << 2);
             es.MOTSTALL = err_sig & (1 << 1);
             es.LSPHS = err_sig & (1 << 0);
-
-            // std::cout << "es.TTTDISC: " << es.TTTDISC << std::endl;
-
-            // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA0: %d", error_data);
 
             return es;
         }
@@ -275,59 +223,9 @@ namespace keya_driver_hardware_interface
 
         ErrorSignal1 es1;
 
-        // for(auto &c : input_buffer.data)
-        // {
-        //     if( c == 0x60 )
-        //     {
-        //         // ErrorSignal es1;
-
-        //         // uint16_t error_data = 0;
-
-        //         // int32_t error_dat32 = error_data;
-
-        //         // *(uint16_t *)(&error_data) = input_buffer.data[4];
-
-        //         uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[4]);
-
-        //         // uint16_t err_sig = static_cast<uint16_t>(error_data);
-
-        //         // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_1: %d", err_sig);
-
-        //         es1.MODEFAIL = err_sig & (1 << 7);
-        //         es1.OVRCURR = err_sig & (1 << 6);
-        //         es1.NA = err_sig & (1 << 5);
-        //         es1.UNDRVOLT = err_sig & (1 << 4);
-        //         es1.EEPROM = err_sig & (1 << 3);
-        //         es1.HRDWRPROT = err_sig & (1 << 2);
-        //         es1.OVRVOLT = err_sig & (1 << 1);
-        //         es1.DISABLE = err_sig & (1 << 0);
-
-        //         // std::cout << "es1.DISABLE: " << es1.DISABLE << std::endl;
-        //         // std::cout << "es1.OVRCURR: " << es1.OVRCURR << std::endl;
-
-        //         // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA1: %d", error_data);
-        //         // RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT2: %d", input_buffer.data[5]);
-
-        //         // return es1;
-        //     }
-        // }
-
-
         if(input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x12 && input_buffer.data[2] == 0x21)
         {
-            // ErrorSignal es1;
-
-            // uint16_t error_data = 0;
-
-            // int32_t error_dat32 = error_data;
-
-            // *(uint16_t *)(&error_data) = input_buffer.data[4];
-
             uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[4]);
-
-            // uint16_t err_sig = static_cast<uint16_t>(error_data);
-
-            // RCLCPP_DEBUG(rclcpp::get_logger("Error Debug"), "Error_Signal_1: %d", err_sig);
 
             es1.MODEFAIL = err_sig & (1 << 7);
             es1.OVRCURR = err_sig & (1 << 6);
@@ -337,12 +235,6 @@ namespace keya_driver_hardware_interface
             es1.HRDWRPROT = err_sig & (1 << 2);
             es1.OVRVOLT = err_sig & (1 << 1);
             es1.DISABLE = err_sig & (1 << 0);
-
-            // std::cout << "es1.DISABLE: " << es1.DISABLE << std::endl;
-            // std::cout << "es1.OVRCURR: " << es1.OVRCURR << std::endl;
-
-            // RCLCPP_DEBUG(rclcpp::get_logger("error_logger"),"Error DATA1: %d", error_data);
-            // RCLCPP_INFO(rclcpp::get_logger("error_logger"),"Error DAT2: %d", input_buffer.data[5]);
 
             return es1;
         }
