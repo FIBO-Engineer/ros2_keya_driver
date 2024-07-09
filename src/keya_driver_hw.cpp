@@ -259,19 +259,53 @@ namespace keya_driver_hardware_interface
 
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
-            std::cout << "can_id_list[" << i << "]: " << can_id_list[i] << std::endl;
-            can_frame position_control_enable_frame = codec.encode_position_control_enable_request(can_id_list[i]);
+            can_frame position_control_enable_frame = codec.encode_position_control_enable_request(can_id_list[i]);           
             can_write(position_control_enable_frame, std::chrono::milliseconds(200));
-            can_read(std::chrono::milliseconds(200));
+            // RCLCPP_INFO(rclcpp::get_logger("READ CAN"),"READ CAN.");
+            for (int k = 0; k < 5; k++)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                can_read(std::chrono::milliseconds(200));
 
+                try
+                {
+                    if(codec.decode_command_response(input_buffer))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        throw 505;
+                    }
+
+                    clear_buffer(input_buffer);
+
+                }
+                catch(int myNum)
+                {
+                    RCLCPP_ERROR(rclcpp::get_logger("enable_decode_logger"), "%d", myNum);
+                }
+
+                // if (codec.decode_command_response(input_buffer))
+                // {
+                //     break;
+                // }
+                // else if (!codec.decode_command_response(input_buffer) && k==4)
+                // {
+                //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Cannot enable motor");
+                //     return hardware_interface::CallbackReturn::ERROR;
+                // }
+            }
+            // can_read(std::chrono::milliseconds(200));
             // std::cout << "decode_command_response: " << codec.decode_command_response(input_buffer) << std::endl;
 
-            if(!codec.decode_command_response(input_buffer))
-            {
-                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Cannot enable motor");
+            // if(!codec.decode_command_response(input_buffer))
+            // {
+            //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Cannot enable motor");
 
-                return hardware_interface::CallbackReturn::ERROR;
-            }
+            //     return hardware_interface::CallbackReturn::ERROR;
+            // }
+            
 
             // res.push_back(codec.decode_command_response(input_buffer));
 
@@ -341,7 +375,8 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        double sleep_time = 0.001;
+        // double sleep_time = 0.001;
+        double sleep_time = 5;
 
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
@@ -360,71 +395,157 @@ namespace keya_driver_hardware_interface
 
                 can_write(req_err_frame, std::chrono::milliseconds(100)); // Write an error read request
 
-                can_read(std::chrono::milliseconds(100));
+                // can_read(std::chrono::milliseconds(100));
 
-                try
+                for (int k = 0; k < 5; k++)
                 {
-                    error_signal_0 = codec.decode_error_0_response(input_buffer);
+                    can_read(std::chrono::milliseconds(100));
 
-                    RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
+                    try
+                    {
+                        if(codec.decode_command_response(input_buffer))
+                        {
+                            error_signal_0 = codec.decode_error_0_response(input_buffer);
+                            RCLCPP_INFO(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
+                            break;
+                        }
+                        else
+                        {
+                            throw 505;
+                        }
+
+                        clear_buffer(input_buffer);
+
+                    }
+                    catch(int myNum)
+                    {
+                        RCLCPP_ERROR(rclcpp::get_logger("error0_decode_logger"), "%d", myNum);
+                    }
+                }
+
+                // try
+                // {
+                //     error_signal_0 = codec.decode_error_0_response(input_buffer);
+
+                //     RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
 
                     
 
-                    // return hardware_interface::return_type::OK;
-                } catch (std::runtime_error &e)
-                {
-                    RCLCPP_ERROR(rclcpp::get_logger("err_decode_logger"), "%s", e.what());
-                }
+                //     // return hardware_interface::return_type::OK;
+                // } catch (std::runtime_error &e)
+                // {
+                //     RCLCPP_ERROR(rclcpp::get_logger("err_decode_logger"), "%s", e.what());
+                // }
                 clear_buffer(input_buffer);
 
                 // sleep(sleep_time);
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
                 /* ---------------------------------------------------------------------------- */
                 /* READ Error DATA1 */
 
                 can_write(req_err_frame, std::chrono::milliseconds(100)); // Write an error read request
 
-                can_read(std::chrono::milliseconds(100));
-
-                try
+                for (int k = 0; k < 5; k++)
                 {
-                    error_signal_1 = codec.decode_error_1_response(input_buffer);
+                    can_read(std::chrono::milliseconds(100));
 
-                    RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+                    try
+                    {
+                        if(codec.decode_command_response(input_buffer))
+                        {
+                            error_signal_1 = codec.decode_error_1_response(input_buffer);
 
-                    clear_buffer(input_buffer);
+                            RCLCPP_INFO(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
 
-                    // return hardware_interface::return_type::OK;
-                } catch (std::runtime_error &e)
-                {
-                    RCLCPP_ERROR(rclcpp::get_logger("err_decode_logger"), "%s", e.what());
+                            clear_buffer(input_buffer);
+
+                            break;
+                        }
+                        else
+                        {
+                            throw 505;
+                        }
+                        
+                        // return hardware_interface::return_type::OK;
+                    } catch (int myNum)
+                    {
+                        RCLCPP_ERROR(rclcpp::get_logger("err1_decode_logger"), "%d", myNum);
+                    }
                 }
 
-                sleep(sleep_time);
+                // can_read(std::chrono::milliseconds(100));
+
+                // try
+                // {
+                //     error_signal_1 = codec.decode_error_1_response(input_buffer);
+
+                //     RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+
+                //     clear_buffer(input_buffer);
+
+                //     // return hardware_interface::return_type::OK;
+                // } catch (std::runtime_error &e)
+                // {
+                //     RCLCPP_ERROR(rclcpp::get_logger("err_decode_logger"), "%s", e.what());
+                // }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                // sleep(sleep_time);
 
                 /* ---------------------------------------------------------------------------- */
                 /* READ motor current */
 
                 can_write(req_curr_frame, std::chrono::milliseconds(100)); // Write a current read request
 
-                can_read(std::chrono::milliseconds(100));
-
-                try
+                for (int k = 0; k < 5; k++)
                 {
-                    const std::lock_guard<std::mutex> lock(current_reading_mutex);
-                    current_current = codec.decode_current_response(input_buffer);
+                    can_read(std::chrono::milliseconds(100));
+                    can_frame current_response = input_buffer;
 
-                    clear_buffer(input_buffer);
+                    try
+                    {
+                        // if(codec.decode_command_response(current_response))
+                        // {
+                            const std::lock_guard<std::mutex> lock(current_reading_mutex);
+                            current_current = codec.decode_current_response(current_response);
 
-                    // return hardware_interface::return_type::OK;
+                            clear_buffer(input_buffer);
+                            // break;
+                        // }
+                        // else
+                        // {
+                        //     throw 505;
+                        // }
+
+                        // return hardware_interface::return_type::OK;
+                    }
+
+                    catch (int myNum)
+                    {
+                        RCLCPP_ERROR(rclcpp::get_logger("curr_decode_logger"), "%d", myNum);
+                    }
+
                 }
+                // can_read(std::chrono::milliseconds(100));
 
-                catch (std::runtime_error &e)
-                {
-                    RCLCPP_ERROR(rclcpp::get_logger("curr_decode_logger"), "%s", e.what());
-                }
+                // try
+                // {
+                //     const std::lock_guard<std::mutex> lock(current_reading_mutex);
+                //     current_current = codec.decode_current_response(input_buffer);
 
-                sleep(sleep_time);
+                //     clear_buffer(input_buffer);
+
+                //     // return hardware_interface::return_type::OK;
+                // }
+
+                // catch (std::runtime_error &e)
+                // {
+                //     RCLCPP_ERROR(rclcpp::get_logger("curr_decode_logger"), "%s", e.what());
+                // }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                // sleep(sleep_time);
 
                 /* ---------------------------------------------------------------------------- */
                 /* READ Current Position */
@@ -435,37 +556,68 @@ namespace keya_driver_hardware_interface
                 {
                     can_read(std::chrono::milliseconds(100));
                     
+                    can_frame position_response = input_buffer;
+
                     try
                     {
                         // read_mtx.lock();
 
                         // error_signal = codec.decode_error_response(input_buffer);
-                        const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
-                        raw_position = codec.decode_position_response(input_buffer) + pos_offset;
+                        if(codec.decode_command_response(position_response)){
+                            const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
+                            raw_position = codec.decode_position_response(position_response) + pos_offset;
 
-                        RCLCPP_INFO(rclcpp::get_logger("OFFSET_IN_READ"), "Offset in Read: %f", pos_offset);
-                        RCLCPP_INFO(rclcpp::get_logger("RAW_IN_READ"), "Raw in Read: %f", raw_position);
+                            // RCLCPP_INFO(rclcpp::get_logger("OFFSET_IN_READ"), "Offset in Read: %f", pos_offset);
+                            // RCLCPP_INFO(rclcpp::get_logger("RAW_IN_READ"), "Raw in Read: %f", raw_position);
 
-                        current_position = raw_position; // + pos_offset;
+                            current_position = raw_position; // + pos_offset;
 
-                        RCLCPP_INFO(rclcpp::get_logger("CURRENTPOS_IN_READ"), "Current pos in Read: %f", current_position);
+                            // RCLCPP_INFO(rclcpp::get_logger("CURRENTPOS_IN_READ"), "Current pos in Read: %f", current_position);
 
-                        a_curr_pos[i] = current_position;
+                            a_curr_pos[i] = current_position;
 
-                        hw_states_[0] = current_position;
+                            hw_states_[0] = current_position;
 
-                        // current_current = codec.decode_current_response(input_buffer);
+                            // current_current = codec.decode_current_response(input_buffer);
 
-                        // read_mtx.unlock();
+                            // read_mtx.unlock();
 
-                        clear_buffer(input_buffer);
+                            clear_buffer(input_buffer);
 
-                        return hardware_interface::return_type::OK;
+                            return hardware_interface::return_type::OK;
+                        }
+                        else
+                        {
+                            throw 505;
+                        }
+
+                        // const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
+                        // raw_position = codec.decode_position_response(input_buffer) + pos_offset;
+
+                        // // RCLCPP_INFO(rclcpp::get_logger("OFFSET_IN_READ"), "Offset in Read: %f", pos_offset);
+                        // // RCLCPP_INFO(rclcpp::get_logger("RAW_IN_READ"), "Raw in Read: %f", raw_position);
+
+                        // current_position = raw_position; // + pos_offset;
+
+                        // // RCLCPP_INFO(rclcpp::get_logger("CURRENTPOS_IN_READ"), "Current pos in Read: %f", current_position);
+
+                        // a_curr_pos[i] = current_position;
+
+                        // hw_states_[0] = current_position;
+
+                        // // current_current = codec.decode_current_response(input_buffer);
+
+                        // // read_mtx.unlock();
+
+                        // clear_buffer(input_buffer);
+
+                        // return hardware_interface::return_type::OK;
                     }
 
-                    catch (std::runtime_error &e)
+                    // catch (std::runtime_error &e)
+                    catch (int myNum)
                     {
-                        RCLCPP_ERROR(rclcpp::get_logger("pos_decode_logger"), "%s", e.what());
+                        RCLCPP_ERROR(rclcpp::get_logger("pos_decode_logger"), "%d", myNum);
                     }
                 }
 
@@ -590,7 +742,7 @@ namespace keya_driver_hardware_interface
         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
         // pos_set = 10;
         RCLCPP_INFO(rclcpp::get_logger("RAWPOS_LOGGER"), "raw_pos: %f", raw_position);
-        pos_offset = 11.3 - raw_position;
+        pos_offset = 10 - raw_position;
         // RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET"), "Pos_offset: %f", pos_offset);
         return pos_offset;
     }
@@ -604,7 +756,7 @@ namespace keya_driver_hardware_interface
 
         RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing Initialized...");
 
-        current_threshold = 17;
+        current_threshold = 7;
         std_msgs::msg::Float64MultiArray turn_left;
         turn_left.data.resize(1);
         turn_left.data[0] = 25.0;

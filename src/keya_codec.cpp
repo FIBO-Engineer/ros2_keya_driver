@@ -113,7 +113,12 @@ namespace keya_driver_hardware_interface
 
     bool KeyaCodec::decode_command_response(can_frame &input_buffer)
     {
-        
+        // for(int k = 0; k < 8; k++)
+        // {
+        //     RCLCPP_INFO(rclcpp::get_logger("DECODE_LOGGER"), "%d", input_buffer.data[k]);
+        //     // std::cout << input_buffer.data[k];
+        // }
+        // std::cout << "----------------------" << std::endl; 
         if (input_buffer.data[0] == 0x60)
         {
             // RCLCPP_INFO(rclcpp::get_logger("decode_logger"),"Byte 0 matched");
@@ -121,7 +126,7 @@ namespace keya_driver_hardware_interface
         }
         else 
         {
-            // RCLCPP_ERROR(rclcpp::get_logger("decode_logger"),"Error byte 0 returns: %u", input_buffer.data[0]);
+            RCLCPP_ERROR(rclcpp::get_logger("decode_logger"),"Error byte 0 returns: %u", input_buffer.data[0]);
             return false;
         }
     }

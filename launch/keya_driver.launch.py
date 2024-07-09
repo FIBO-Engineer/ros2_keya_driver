@@ -66,8 +66,9 @@ def generate_launch_description():
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[robot_description, robot_controllers],
-        arguments=['--ros-args', '--log-level', 'DEBUG'],
+        # arguments=['--ros-args', '--log-level', 'INFO'],
         output="both",
+        emulate_tty=True
     )
 
     robot_state_pub_node = Node(
@@ -75,6 +76,7 @@ def generate_launch_description():
         executable="robot_state_publisher",
         output="both",
         parameters=[robot_description],
+        emulate_tty=True
     )
 
     joint_state_broadcaster_spawner = Node(
