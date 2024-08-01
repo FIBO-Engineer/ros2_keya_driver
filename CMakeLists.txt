@@ -33,6 +33,8 @@ add_library(
   src/keya_driver_hw.cpp
 )
 
+target_compile_features(keya_driver PUBLIC cxx_std_17)
+
 ament_target_dependencies( keya_driver
   ament_cmake
   rclcpp

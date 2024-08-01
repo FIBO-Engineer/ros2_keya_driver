@@ -143,30 +143,60 @@ namespace keya_driver_hardware_interface
         static double prev_position;
         double curr_position_rad;
 
-        for ( auto &c : input_buffer.data)
+        // ------------------This block checks first three bytes of the response code-----------------------------
+
+        if ( input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x04 && input_buffer.data[2] == 0x21)
         {
-            if ( c == 0x60 )
-            {
-                prev_position = 0.00;
-                // curr_position_rad;
+            prev_position = 0.00;
+            // curr_position_rad;
 
-                int32_t curr_position = prev_position;
-                *(uint8_t *)(&curr_position) = input_buffer.data[4];
-                *((uint8_t *)(&curr_position) + 1) = input_buffer.data[5];
-                *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
-                *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
+            int32_t curr_position = prev_position;
+            *(uint8_t *)(&curr_position) = input_buffer.data[4];
+            *((uint8_t *)(&curr_position) + 1) = input_buffer.data[5];
+            *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
+            *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
 
-                curr_position_rad = curr_position * ( 2 * M_PI) / 10000;
+            curr_position_rad = curr_position * ( 2 * M_PI) / 10000;
 
-                prev_position = curr_position_rad;
+            prev_position = curr_position_rad;
 
-                RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
+            RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
 
-                // return prev_position;
-            }
+            return prev_position;
+
+        }
+        else
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("position_logger"), "Cannot read position.");
+            return prev_position;
         }
 
-        return prev_position;
+        // ----------------------------------End of the block---------------------------------------
+
+        // for ( auto &c : input_buffer.data)
+        // {
+        //     if ( c == 0x60 )
+        //     {
+        //         prev_position = 0.00;
+        //         // curr_position_rad;
+
+        //         int32_t curr_position = prev_position;
+        //         *(uint8_t *)(&curr_position) = input_buffer.data[4];
+        //         *((uint8_t *)(&curr_position) + 1) = input_buffer.data[5];
+        //         *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
+        //         *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
+
+        //         curr_position_rad = curr_position * ( 2 * M_PI) / 10000;
+
+        //         prev_position = curr_position_rad;
+
+        //         RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
+
+        //         // return prev_position;
+        //     }
+        // }
+
+        // return prev_position;
 
     }
 
@@ -174,24 +204,48 @@ namespace keya_driver_hardware_interface
     {
         double motor_current;
 
-        for( auto &c : input_buffer.data)
+        // ----------------------This block checks the first three bytes of the response code--------------------------
+
+        if( input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x00 && input_buffer.data[2] == 0x21)
         {
-            if( c == 0x60 )
-            {
-                motor_current = 0;
+            motor_current = 0;
 
-                int32_t current_motor_current = motor_current;
-                *(uint8_t *)(&current_motor_current) = input_buffer.data[4];
+            int32_t current_motor_current = motor_current;
+            *(uint8_t *)(&current_motor_current) = input_buffer.data[4];
 
-                motor_current = current_motor_current;
+            motor_current = current_motor_current;
 
-                RCLCPP_INFO(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
+            RCLCPP_INFO(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
 
-                // return motor_current;
-            }
+            return motor_current;
+        }
+        else
+        {
+            // RCLCPP_ERROR(rclcpp::get_logger("current_logger"), "Cannot read current.");
+
+            return 0.00;
         }
 
-        return motor_current;
+        // -------------------------------------End of the block----------------------------------------
+
+        // for( auto &c : input_buffer.data)
+        // {
+        //     if( c == 0x60 )
+        //     {
+        //         motor_current = 0;
+
+        //         int32_t current_motor_current = motor_current;
+        //         *(uint8_t *)(&current_motor_current) = input_buffer.data[4];
+
+        //         motor_current = current_motor_current;
+
+        //         RCLCPP_INFO(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
+
+        //         // return motor_current;
+        //     }
+        // }
+
+        // return motor_current;
 
     }
     

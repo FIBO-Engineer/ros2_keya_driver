@@ -65,10 +65,11 @@ def generate_launch_description():
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[robot_description, robot_controllers],
+        parameters=[robot_controllers],
         # arguments=['--ros-args', '--log-level', 'INFO'],
         output="both",
-        emulate_tty=True
+        emulate_tty=True,
+        remappings=[ ('~/robot_description', '/robot_description')]
     )
 
     robot_state_pub_node = Node(
@@ -102,7 +103,7 @@ def generate_launch_description():
         control_node,
         robot_state_pub_node,
         joint_state_broadcaster_spawner,
-        delay_robot_controller_spawner_after_joint_state_broadcaster_spawner,
+        position_controller_spawner,
     ]
 
     return LaunchDescription(declared_arguments + nodes)

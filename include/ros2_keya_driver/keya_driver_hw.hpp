@@ -24,6 +24,10 @@
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "diagnostic_updater/diagnostic_status_wrapper.hpp"
 
+#include <fstream>
+#include <atomic>
+#include <nlohmann/json.hpp>
+
 namespace keya_driver_hardware_interface
 {
     class KeyaDriverHW : public hardware_interface::ActuatorInterface
@@ -89,7 +93,7 @@ namespace keya_driver_hardware_interface
 
         // raw object
         std::mutex read_mtx;
-        std::mutex current_reading_mutex;
+        //std::mutex current_reading_mutex;
         std::mutex rawpos_reading_mutex;
 
         // diagnostic
@@ -111,6 +115,8 @@ namespace keya_driver_hardware_interface
         void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
+        void init_centering();
+
         // void set_offset(double input_pos);
 
         double set_offset();
@@ -121,6 +127,8 @@ namespace keya_driver_hardware_interface
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;
         rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr centering_publisher;
 
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr init_center_publisher;
+
         // products
         double raw_position;
         double current_position;
@@ -128,7 +136,7 @@ namespace keya_driver_hardware_interface
         uint16_t alarm_code;
         ErrorSignal error_signal_0;
         ErrorSignal1 error_signal_1;
-        double current_current;
+        std::atomic<double> current_current;
         double current_threshold;
         double pos_offset = 0;
         double pos_set;

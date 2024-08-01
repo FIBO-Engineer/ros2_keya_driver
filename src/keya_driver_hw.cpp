@@ -16,10 +16,14 @@
 
 #include <iostream>
 
+#include <fstream>
+#include <nlohmann/json.hpp>
+
 
 namespace keya_driver_hardware_interface
 {
     using namespace std::chrono_literals;
+    using json = nlohmann::json;
 
     hardware_interface::CallbackReturn KeyaDriverHW::on_init(const hardware_interface::HardwareInfo & info)
     {
@@ -163,6 +167,20 @@ namespace keya_driver_hardware_interface
 
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN socket connected");
 
+        // try
+        // {
+        //     std::ifstream f("/home/yamaha02/ros2_ws/src/ros2_keya_driver/config/offset.json");
+        //     json data = json::parse(f);
+
+        //     pos_offset = data["offset"];
+        //     f.close();
+        //     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Offset file found.");
+        // }
+        // catch(std::runtime_error &e)
+        // {
+        //     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Offset file not found.");
+        // }
+
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuration successful");
 
         // Always reset values when configuring hardware
@@ -186,6 +204,8 @@ namespace keya_driver_hardware_interface
 
             centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
             centering_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
+
+            // init_center_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
 
             rclcpp::spin(node);
             rclcpp::shutdown();
@@ -376,7 +396,7 @@ namespace keya_driver_hardware_interface
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
         // double sleep_time = 0.001;
-        double sleep_time = 5;
+        // double sleep_time = 5;
 
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
@@ -505,18 +525,18 @@ namespace keya_driver_hardware_interface
 
                     try
                     {
-                        // if(codec.decode_command_response(current_response))
-                        // {
-                            const std::lock_guard<std::mutex> lock(current_reading_mutex);
-                            current_current = codec.decode_current_response(current_response);
-
+                        if(codec.decode_command_response(current_response))
+                        {
+                            // const std::lock_guard<std::mutex> lock(current_reading_mutex);
+                            current_current.store(codec.decode_current_response(current_response));// = codec.decode_current_response(current_response);
+                            RCLCPP_INFO(rclcpp::get_logger("READ"), "current*: %f", current_current.load());
                             clear_buffer(input_buffer);
-                            // break;
-                        // }
-                        // else
-                        // {
-                        //     throw 505;
-                        // }
+                            break;
+                        }
+                        else
+                        {
+                            throw 505;
+                        }
 
                         // return hardware_interface::return_type::OK;
                     }
@@ -650,7 +670,8 @@ namespace keya_driver_hardware_interface
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "hw_command_[0]: %f", hw_commands_[0]);
 
             double enc_pos = hw_commands_[0]; 
-
+            // RCLCPP_INFO(rclcpp::get_logger("KeyaCodec"),"hw_cmd: %f", hw_commands_[0]);
+    
             a_cmd_pos[i] = enc_pos; // - pos_offset;
             
             req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i] - pos_offset);
@@ -742,7 +763,17 @@ namespace keya_driver_hardware_interface
         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
         // pos_set = 10;
         RCLCPP_INFO(rclcpp::get_logger("RAWPOS_LOGGER"), "raw_pos: %f", raw_position);
-        pos_offset = 10 - raw_position;
+        pos_offset = 11.0 - raw_position; 
+
+        // create json file to save pos_offset
+        json j;
+        j["offset"] = pos_offset;
+
+        std::ofstream file("/home/yamaha02/ros2_ws/src/ros2_keya_driver/config/offset.json");
+        file << j;
+
+        file.close(); 
+
         // RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET"), "Pos_offset: %f", pos_offset);
         return pos_offset;
     }
@@ -756,7 +787,7 @@ namespace keya_driver_hardware_interface
 
         RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Homing Initialized...");
 
-        current_threshold = 7;
+        current_threshold = 17;
         std_msgs::msg::Float64MultiArray turn_left;
         turn_left.data.resize(1);
         turn_left.data[0] = 25.0;
@@ -764,6 +795,7 @@ namespace keya_driver_hardware_interface
         // turn wheel to the left
         while(!reach_current_threshold(current_threshold))
         {
+            RCLCPP_INFO(rclcpp::get_logger("CURRENT_CURRENT_LOGGER"), "Current_current: %f", current_current.load());
             homing_publisher->publish(turn_left);
             std::this_thread::sleep_for(50ms);
         }
@@ -794,7 +826,7 @@ namespace keya_driver_hardware_interface
         response->success = true;
         response->message = "";
 
-        RCLCPP_INFO(rclcpp::get_logger("HOMING_LOG"), "Centering Initialized...");
+        RCLCPP_INFO(rclcpp::get_logger("CENTERING_LOG"), "Centering Initialized...");
 
         std_msgs::msg::Float64MultiArray center;
         center.data.resize(1);
@@ -813,13 +845,13 @@ namespace keya_driver_hardware_interface
 
     bool KeyaDriverHW::reach_current_threshold(double current_threshold)
     {
-        const std::lock_guard<std::mutex> lock(current_reading_mutex);
-        if (fabs(current_current) >= current_threshold){
+        // const std::lock_guard<std::mutex> lock(current_reading_mutex);
+        if (fabs(current_current.load()) >= current_threshold){
             RCLCPP_INFO(rclcpp::get_logger("THRESHOLD_LOGGER"), "THRESHOLD REACHED");
             return true;
         }
         else{
-            RCLCPP_INFO(rclcpp::get_logger("THRESHOLD_LOGGER"), "FALSE");
+            RCLCPP_INFO(rclcpp::get_logger("THRESHOLD_LOGGER"), "FALSE %f %f" , fabs(current_current), fabs(current_threshold));
             return false;
 
         }
