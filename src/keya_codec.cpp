@@ -47,7 +47,7 @@ namespace keya_driver_hardware_interface
     can_frame KeyaCodec::encode_position_command_request(canid_t can_id, double cmd)
     {
         // int32_t cmd_unit = cmd * 10000 / 360;
-        int32_t cmd_unit = cmd * 10000 / (2 * M_PI) ;
+        int32_t cmd_unit = cmd * 10000 / ( 2 * M_PI) ;
         can_frame frame;
         frame.can_id = can_id;
         frame.can_dlc = 8;
@@ -113,30 +113,20 @@ namespace keya_driver_hardware_interface
 
     bool KeyaCodec::decode_command_response(can_frame &input_buffer)
     {
-        // for(int k = 0; k < 8; k++)
-        // {
-        //     RCLCPP_INFO(rclcpp::get_logger("DECODE_LOGGER"), "%d", input_buffer.data[k]);
-        //     // std::cout << input_buffer.data[k];
-        // }
-        // std::cout << "----------------------" << std::endl; 
-        if (input_buffer.data[0] == 0x60)
+        if (input_buffer.can_id == 0x87000001)
         {
-            // RCLCPP_INFO(rclcpp::get_logger("decode_logger"),"Byte 0 matched");
             return true;
         }
         else 
         {
-            RCLCPP_ERROR(rclcpp::get_logger("decode_logger"),"Error byte 0 returns: %u", input_buffer.data[0]);
             return false;
         }
     }
 
-    bool KeyaCodec::decode_position_command_response(can_frame &input_buffer)
-    {
-        // RCLCPP_INFO(rclcpp::get_logger("cmd_decode_logger"), "Current byte 0: %u", input_buffer.data[0]);
-
-        return true;
-    }
+    // bool KeyaCodec::decode_position_command_response(can_frame &input_buffer)
+    // {
+    //     return true;
+    // }
 
     double KeyaCodec::decode_position_response(can_frame &input_buffer)
     {
@@ -145,21 +135,21 @@ namespace keya_driver_hardware_interface
 
         // ------------------This block checks first three bytes of the response code-----------------------------
 
-        if ( input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x04 && input_buffer.data[2] == 0x21)
+        // if ( input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x04 && input_buffer.data[2] == 0x21)
+        if( input_buffer.can_id == 0x87000001 )
         {
             prev_position = 0.00;
             // curr_position_rad;
 
             int32_t curr_position = prev_position;
-            *(uint8_t *)(&curr_position) = input_buffer.data[4];
-            *((uint8_t *)(&curr_position) + 1) = input_buffer.data[5];
-            *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
-            *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
+            *(uint8_t *)(&curr_position) = input_buffer.data[1];
+            *((uint8_t *)(&curr_position) + 1) = input_buffer.data[0];
+            // *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
+            // *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
 
-            curr_position_rad = curr_position * ( 2 * M_PI) / 10000;
+            curr_position_rad = curr_position * ( M_PI / 180 );
 
             prev_position = curr_position_rad;
-
             RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
 
             return prev_position;
@@ -167,37 +157,14 @@ namespace keya_driver_hardware_interface
         }
         else
         {
+            std::cout << "[CAN_ID_POSITION_LOGGER]: " << std::hex << input_buffer.can_id << std::dec << std::endl;
+            // std::cout << "[INPUT_BUFFER_DLC]: " << std::hex << input_buffer.data[0] << std::dec << std::endl;
+            for (int i = 0; i < input_buffer.can_dlc; ++i) {
+                std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(input_buffer.data[i]) << " ";
+            }
             RCLCPP_ERROR(rclcpp::get_logger("position_logger"), "Cannot read position.");
             return prev_position;
         }
-
-        // ----------------------------------End of the block---------------------------------------
-
-        // for ( auto &c : input_buffer.data)
-        // {
-        //     if ( c == 0x60 )
-        //     {
-        //         prev_position = 0.00;
-        //         // curr_position_rad;
-
-        //         int32_t curr_position = prev_position;
-        //         *(uint8_t *)(&curr_position) = input_buffer.data[4];
-        //         *((uint8_t *)(&curr_position) + 1) = input_buffer.data[5];
-        //         *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
-        //         *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
-
-        //         curr_position_rad = curr_position * ( 2 * M_PI) / 10000;
-
-        //         prev_position = curr_position_rad;
-
-        //         RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
-
-        //         // return prev_position;
-        //     }
-        // }
-
-        // return prev_position;
-
     }
 
     double KeyaCodec::decode_current_response(can_frame &input_buffer)
@@ -206,14 +173,20 @@ namespace keya_driver_hardware_interface
 
         // ----------------------This block checks the first three bytes of the response code--------------------------
 
-        if( input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x00 && input_buffer.data[2] == 0x21)
+        if( input_buffer.can_id == 0x87000001 )
         {
             motor_current = 0;
 
             int32_t current_motor_current = motor_current;
-            *(uint8_t *)(&current_motor_current) = input_buffer.data[4];
+            *(uint8_t *)(&current_motor_current) = input_buffer.data[5];
+            *((uint8_t *)(&current_motor_current) + 1) = input_buffer.data[4];
 
             motor_current = current_motor_current;
+
+            if(motor_current > 60000 && motor_current < 66000)
+            {
+                motor_current = 0;
+            }
 
             RCLCPP_INFO(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
 
@@ -225,37 +198,15 @@ namespace keya_driver_hardware_interface
 
             return 0.00;
         }
-
-        // -------------------------------------End of the block----------------------------------------
-
-        // for( auto &c : input_buffer.data)
-        // {
-        //     if( c == 0x60 )
-        //     {
-        //         motor_current = 0;
-
-        //         int32_t current_motor_current = motor_current;
-        //         *(uint8_t *)(&current_motor_current) = input_buffer.data[4];
-
-        //         motor_current = current_motor_current;
-
-        //         RCLCPP_INFO(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
-
-        //         // return motor_current;
-        //     }
-        // }
-
-        // return motor_current;
-
     }
     
     ErrorSignal KeyaCodec::decode_error_0_response(can_frame &input_buffer)
     {
 
         ErrorSignal es;
-        if(input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x12 && input_buffer.data[2] == 0x21)
+        if( input_buffer.can_id == 0x87000001 )
         {
-            uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[5]);
+            uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[6]);
 
             es.MOTSTALLED = err_sig & (1 << 7);
             es.CANDISC = err_sig & (1 << 6);
@@ -282,9 +233,9 @@ namespace keya_driver_hardware_interface
 
         ErrorSignal1 es1;
 
-        if(input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x12 && input_buffer.data[2] == 0x21)
+        if( input_buffer.can_id == 0x87000001 )
         {
-            uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[4]);
+            uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[7]);
 
             es1.MODEFAIL = err_sig & (1 << 7);
             es1.OVRCURR = err_sig & (1 << 6);

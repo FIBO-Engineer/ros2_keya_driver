@@ -90,6 +90,7 @@ namespace keya_driver_hardware_interface
         std::shared_ptr<boost::asio::posix::basic_stream_descriptor<>> stream;
         // boost::asio::posix::basic_stream_descriptor<> stream;
         can_frame input_buffer;
+        can_frame read_frame;
 
         // raw object
         std::mutex read_mtx;
