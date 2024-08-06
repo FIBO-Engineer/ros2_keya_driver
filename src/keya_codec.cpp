@@ -149,6 +149,11 @@ namespace keya_driver_hardware_interface
 
             curr_position_rad = curr_position * ( M_PI / 180 );
 
+            if(curr_position_rad > 30)
+            {
+                curr_position_rad = curr_position_rad - 1143.8;
+            }
+
             prev_position = curr_position_rad;
             RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
 
