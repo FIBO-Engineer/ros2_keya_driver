@@ -45,7 +45,7 @@ def generate_launch_description():
             PathJoinSubstitution(
                 [
                     FindPackageShare("ros2_keya_driver"),
-                    "description/ros2_control",
+                    "description",
                     "keya_world.xacro",
                 ]
             ),

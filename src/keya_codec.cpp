@@ -48,6 +48,7 @@ namespace keya_driver_hardware_interface
     {
         // int32_t cmd_unit = cmd * 10000 / 360;
         int32_t cmd_unit = cmd * 10000 / ( 2 * M_PI) ;
+        cmd_unit = cmd_unit * 22.5;
         can_frame frame;
         frame.can_id = can_id;
         frame.can_dlc = 8;
@@ -148,6 +149,7 @@ namespace keya_driver_hardware_interface
             // *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
 
             curr_position_rad = curr_position * ( M_PI / 180 );
+            curr_position_rad = curr_position_rad / 22.5;
 
             if(curr_position_rad > 30)
             {
@@ -155,7 +157,7 @@ namespace keya_driver_hardware_interface
             }
 
             prev_position = curr_position_rad;
-            RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
+            RCLCPP_DEBUG(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
 
             return prev_position;
 
@@ -193,7 +195,7 @@ namespace keya_driver_hardware_interface
                 motor_current = 0;
             }
 
-            RCLCPP_INFO(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
+            RCLCPP_DEBUG(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
 
             return motor_current;
         }

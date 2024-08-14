@@ -414,20 +414,20 @@ namespace keya_driver_hardware_interface
             {
                 /* ---------------------------------------------------------------------------- */
                 /* READ Error DATA0 and DATA1 */
-                std::cout << "-------------------------------------------------------" << std::endl;
+                // std::cout << "-------------------------------------------------------" << std::endl;
 
                 can_read(std::chrono::milliseconds(100));
 
                 if(codec.decode_command_response(input_buffer))
                 {
                     error_signal_0 = codec.decode_error_0_response(input_buffer);
-                    RCLCPP_INFO(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
+                    RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
                     error_signal_1 = codec.decode_error_1_response(input_buffer);
-                    RCLCPP_INFO(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+                    RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
                 }
                 else
                 {
-                    RCLCPP_INFO(rclcpp::get_logger("Error0_Debug"), "Error0: Cannot read error");
+                    RCLCPP_ERROR(rclcpp::get_logger("Error0_Debug"), "Error0: Cannot read error");
                 }
 
                 /* ---------------------------------------------------------------------------- */
@@ -442,7 +442,7 @@ namespace keya_driver_hardware_interface
                     if(codec.decode_command_response(current_response))
                     {
                         current_current.store(codec.decode_current_response(current_response));// = codec.decode_current_response(current_response);
-                        RCLCPP_INFO(rclcpp::get_logger("READ"), "current*: %f", current_current.load());
+                        RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current.load());
                         clear_buffer(input_buffer);
                     }
                     else
