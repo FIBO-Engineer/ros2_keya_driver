@@ -15,6 +15,7 @@ namespace keya_driver_hardware_interface
         bool TTTDISC; // 232 disconnected
         bool CANDISC; // CAN disconnected
         bool MOTSTALLED; // Motor stalled
+        bool UNKNOWN;
 
         std::string getErrorMessage() const
         {

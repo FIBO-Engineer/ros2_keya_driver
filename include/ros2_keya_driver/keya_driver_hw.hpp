@@ -17,8 +17,16 @@
 
 #include "rclcpp/macros.hpp"
 
+#include <std_msgs/msg/float64.hpp>
+#include <std_srvs/srv/trigger.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
+
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "diagnostic_updater/diagnostic_status_wrapper.hpp"
+
+#include <fstream>
+#include <atomic>
+#include <nlohmann/json.hpp>
 
 namespace keya_driver_hardware_interface
 {
@@ -52,6 +60,7 @@ namespace keya_driver_hardware_interface
         CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
         CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
         CallbackReturn on_shutdown(const rclcpp_lifecycle::State & previous_state) override;
+        
         hardware_interface::return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
         hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
@@ -81,9 +90,12 @@ namespace keya_driver_hardware_interface
         std::shared_ptr<boost::asio::posix::basic_stream_descriptor<>> stream;
         // boost::asio::posix::basic_stream_descriptor<> stream;
         can_frame input_buffer;
+        can_frame read_frame;
 
         // raw object
         std::mutex read_mtx;
+        //std::mutex current_reading_mutex;
+        std::mutex rawpos_reading_mutex;
 
         // diagnostic
         rclcpp::Node::SharedPtr node;
@@ -92,13 +104,43 @@ namespace keya_driver_hardware_interface
         void produce_diagnostics_1(diagnostic_updater::DiagnosticStatusWrapper &stat);
         std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater;
 
+        // Homing Service
+
+        // void homing();
+        bool reach_current_threshold(double threshold);
+        void handle_service();
+
+        void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+
+        void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+
+        void init_centering();
+
+        // void set_offset(double input_pos);
+
+        double set_offset();
+
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr homing_publisher;
+
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr centering_publisher;
+
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr init_center_publisher;
+
         // products
+        double raw_position;
         double current_position;
         double current_command;
         uint16_t alarm_code;
         ErrorSignal error_signal_0;
         ErrorSignal1 error_signal_1;
-        double current_current;
+        std::atomic<double> current_current;
+        double current_threshold;
+        double pos_offset = 0;
+        double pos_set;
         // StatusSignal status_signal;
 
     };

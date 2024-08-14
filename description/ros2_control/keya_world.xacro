@@ -9,7 +9,7 @@
   <!-- Import Keya ros2_control description -->
   <xacro:include filename="$(find ros2_keya_driver)/description/ros2_control/keya.ros2_control.xacro" />
 
-  <xacro:arg name="prefix" default="motor" />
+  <xacro:arg name="prefix" default="steering" />
   <xacro:arg name="parent" default="world" />
 
 
