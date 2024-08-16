@@ -12,6 +12,7 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>std_msgs</depend>
+  <depend>transmission_interface</depend>
   <depend>hardware_interface</depend>
   <depend>controller_manager</depend>
   <depend>pluginlib</depend>

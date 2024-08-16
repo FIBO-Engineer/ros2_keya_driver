@@ -14,6 +14,7 @@ find_package(hardware_interface REQUIRED)
 find_package(controller_manager REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(example_interfaces REQUIRED)
+find_package(transmission_interface REQUIRED)
 find_package(std_srvs REQUIRED)
 
 include_directories(
@@ -40,6 +41,7 @@ ament_target_dependencies( keya_driver
   rclcpp
   rclcpp_lifecycle
   rcl
+  transmission_interface
   hardware_interface
   controller_interface
   controller_manager

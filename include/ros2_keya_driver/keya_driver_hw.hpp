@@ -24,6 +24,8 @@
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "diagnostic_updater/diagnostic_status_wrapper.hpp"
 
+#include "transmission_interface/transmission.hpp"
+
 #include <fstream>
 #include <atomic>
 #include <nlohmann/json.hpp>
@@ -64,7 +66,10 @@ namespace keya_driver_hardware_interface
         hardware_interface::return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
         hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
+        double a_pos[1];
+        double j_pos[1];
         double a_cmd_pos[1];
+        double j_cmd_pos[1];
         double a_curr_pos[1];
 
     protected:
@@ -86,6 +91,14 @@ namespace keya_driver_hardware_interface
 
         std::vector<double> hw_commands_;
         std::vector<double> hw_states_;
+
+        std::vector<std::shared_ptr<transmission_interface::Transmission>> state_transmissions;
+        std::vector<std::shared_ptr<transmission_interface::Transmission>> command_transmissions;
+
+        std::vector<transmission_interface::JointHandle> state_joint_handles;
+        std::vector<transmission_interface::ActuatorHandle> state_actuator_handles;
+        std::vector<transmission_interface::JointHandle> command_joint_handles;
+        std::vector<transmission_interface::ActuatorHandle> command_actuator_handles;
 
         std::shared_ptr<boost::asio::posix::basic_stream_descriptor<>> stream;
         // boost::asio::posix::basic_stream_descriptor<> stream;

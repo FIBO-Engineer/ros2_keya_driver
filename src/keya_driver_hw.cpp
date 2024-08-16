@@ -3,6 +3,10 @@
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "hardware_interface/actuator_interface.hpp"
 
+#include "transmission_interface/simple_transmission.hpp"
+#include "transmission_interface/simple_transmission_loader.hpp"
+#include "transmission_interface/transmission_interface_exception.hpp"
+
 #include <std_srvs/srv/trigger.hpp>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
@@ -42,6 +46,8 @@ namespace keya_driver_hardware_interface
             return hardware_interface::CallbackReturn::ERROR;
         }
 
+        std::vector<double> pos_idx;
+
         for (const hardware_interface::ComponentInfo & joint : info_.joints)
         {
             if (joint.command_interfaces.size() != 1)
@@ -75,6 +81,105 @@ namespace keya_driver_hardware_interface
                     joint.state_interfaces[0].name.c_str(), hardware_interface::HW_IF_POSITION);
                 return hardware_interface::CallbackReturn::ERROR;
             }
+
+            int pos_if_idx = -1;
+            for(size_t i = 0; i < joint.state_interfaces.size(); i++){
+                if(joint.state_interfaces[i].name == hardware_interface::HW_IF_POSITION){
+                    pos_if_idx = i;
+                } else {
+                    RCLCPP_FATAL(
+                        rclcpp::get_logger("KeyaDriverHW"),
+                        "Joint '%s' has unsupported interface: %s", joint.name.c_str(),
+                        info.name.c_str());
+                    return CallbackReturn::ERROR;
+                }
+            }
+
+            if(pos_if_idx == -1){
+                RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "State Interface in URDF must provide position interface");
+                return CallbackReturn::ERROR;
+            }
+
+            pos_idx.push_back(pos_if_idx);
+
+        }
+
+        transmission_interface::SimpleTransmissionLoader transmission_loader;
+        // a_cmd_pos.resize(info_.transmissions.size());
+
+        for(const auto & transmission_info : info_.transmissions)
+        {
+            if (transmission_info.type != "transmission_interface/SimpleTransmission")
+            {
+                RCLCPP_FATAL(
+                    rclcpp::get_logger("KeyaDriverHW"), "Transmission '%s' of type '%s' not supported  in here",
+                    transmission_info.name.c_str(), transmission_info.type.c_str());
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+
+            std::shared_ptr<transmission_interface::Transmission> state_transmission;
+            std::shared_ptr<transmission_interface::Transmission> command_transmission;
+
+            try
+            {
+                state_transmission = transmission_loader.load(transmission_info);
+                command_transmission = transmission_loader.load(transmission_info);
+            }
+            catch (const transmission_interface::TransmissionInterfaceException & exc)
+            {
+                RCLCPP_FATAL(
+                    rclcpp::get_logger("KeyaDriverHW"),"Error while loading %s: %s", transmission_info.name.c_str(), exc.what());
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+
+            // std::vector<transmission_interface::JointHandle> joint_handles;
+            for (size_t i = 0; i < transmission_info.joints.size(); i++)
+            {
+                if (!(transmission_info.joints[i].state_interfaces.size() == 1 &&
+                        transmission_info.joints[i].state_interfaces[pos_idx[i]] == hardware_interface::HW_IF_POSITION &&
+                        transmission_info.joints[i].command_interfaces.size() == 1 &&
+                        transmission_info.joints[i].command_interfaces[0] == hardware_interface::HW_IF_POSITION))
+                {
+                    RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Invalid transmission joint '%s' configuration for this demo",
+                        transmission_info.joints[i].name.c_str());
+                    return hardware_interface::CallbackReturn::ERROR;
+                }
+
+                transmission_interface::JointHandle joint_handle_pos(transmission_info.joints[i].name, hardware_interface::HW_IF_POSITION, &j_pos[i]);
+                state_joint_handles.push_back(joint_handle_pos);
+
+                transmission_interface::JointHandle joint_handle_cmd_pos(transmission_info.joints[i].name, hardware_interface::HW_IF_POSITION, &j_cmd_pos[i]);
+                command_joint_handles.push_back(joint_handle_cmd_pos);
+            }
+
+            // std::vector<transmission_interface::ActuatorHandle> actuator_handles;
+            for (size_t i = 0; i < transmission_info.actuators.size(); i++)
+            {
+                transmission_interface::ActuatorHandle actuator_handle_pos(
+                    transmission_info.actuators[i].name, hardware_interface::HW_IF_POSITION, &a_pos[i]
+                );
+                state_actuator_handles.push_back(actuator_handle_pos);
+
+                transmission_interface::ActuatorHandle actuator_handle_cmd_pos(
+                    transmission_info.actuators[i].name, hardware_interface::HW_IF_POSITION, &a_cmd_pos[i]
+                );
+                command_actuator_handles.push_back(actuator_handle_cmd_pos);
+            }
+
+            try
+            {
+                state_transmission->configure(state_joint_handles, state_actuator_handles);
+                command_transmission->configure(command_joint_handles, command_actuator_handles);
+            }
+            catch(const transmission_interface::TransmissionInterfaceException & exc)
+            {
+                RCLCPP_FATAL(
+                    rclcpp::get_logger("KeyaDriverHW"), "Error while configuring %s: %s", transmission_info.name.c_str(), exc.what());
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+
+            state_transmissions.push_back(state_transmission);
+            command_transmissions.push_back(command_transmission);        
         }
 
         return hardware_interface::CallbackReturn::SUCCESS;
@@ -480,8 +585,9 @@ namespace keya_driver_hardware_interface
 
                         // RCLCPP_INFO(rclcpp::get_logger("CURRENTPOS_IN_READ"), "Current pos in Read: %f", current_position);
 
-                        a_curr_pos[i] = current_position;
+                        a_pos[i] = current_position;
 
+                        state_transmissions[i]->actuator_to_joint();
                         hw_states_[0] = current_position;
 
                         // current_current = codec.decode_current_response(input_buffer);
@@ -533,6 +639,7 @@ namespace keya_driver_hardware_interface
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "hw_command_[0]: %f", hw_commands_[0]);
 
             double enc_pos = hw_commands_[0]; 
+            command_transmissions[i] -> joint_to_actuator();
             // RCLCPP_INFO(rclcpp::get_logger("KeyaCodec"),"hw_cmd: %f", hw_commands_[0]);
     
             a_cmd_pos[i] = enc_pos; // - pos_offset;

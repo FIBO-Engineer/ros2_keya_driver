@@ -13,6 +13,13 @@
                 <command_interface name="position" />
                 <state_interface name="position" />
             </joint>
+
+            <transmission name="${prefix}_transmission">
+                <plugin>transmission_interface/SimpleTransmission</plugin>
+                <joint name="${prefix}_joint" role="${prefix}_joint">
+                    <mechanical_reduction>22.44</mechanical_reduction>
+                </joint>
+            </transmission>
         </ros2_control>
 
     </xacro:macro>
