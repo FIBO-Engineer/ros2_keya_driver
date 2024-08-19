@@ -47,7 +47,21 @@ namespace keya_driver_hardware_interface
     can_frame KeyaCodec::encode_position_command_request(canid_t can_id, double cmd)
     {
         // int32_t cmd_unit = cmd * 10000 / 360;
-        int32_t cmd_unit = cmd * 10000 / ( 2 * M_PI) ;
+        double trimmed_cmd;
+        if(cmd > 0.4)
+        {
+            trimmed_cmd = 0.4;
+        }
+        else if(cmd < -0.4)
+        {
+            trimmed_cmd = -0.4;
+        }
+        else
+        {
+            trimmed_cmd = cmd;
+        }
+
+        int32_t cmd_unit = trimmed_cmd * 10000 / ( 2 * M_PI) ;
         cmd_unit = cmd_unit * 22.5;
         can_frame frame;
         frame.can_id = can_id;
