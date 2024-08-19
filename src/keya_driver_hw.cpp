@@ -732,7 +732,7 @@ namespace keya_driver_hardware_interface
         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
         // pos_set = 10;
         RCLCPP_INFO(rclcpp::get_logger("RAWPOS_LOGGER"), "raw_pos: %f", raw_position);
-        pos_offset = 11.3 - raw_position; 
+        pos_offset = 0.5 - raw_position; 
 
         // create json file to save pos_offset
         json j;
