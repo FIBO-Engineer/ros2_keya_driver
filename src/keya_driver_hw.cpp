@@ -280,20 +280,6 @@ namespace keya_driver_hardware_interface
 
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN socket connected");
 
-        // try
-        // {
-        //     std::ifstream f("/home/yamaha02/ros2_ws/src/ros2_keya_driver/config/offset.json");
-        //     json data = json::parse(f);
-
-        //     pos_offset = data["offset"];
-        //     f.close();
-        //     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Offset file found.");
-        // }
-        // catch(std::runtime_error &e)
-        // {
-        //     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Offset file not found.");
-        // }
-
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuration successful");
 
         // Always reset values when configuring hardware
@@ -326,11 +312,6 @@ namespace keya_driver_hardware_interface
 
         rcl_thread = std::thread(update_func);
         // rcl_thread_2 = std::thread();
-
-        // homing_service = node->create_service<std_srvs::srv::Trigger>("home", std::bind(&KeyaDriverHW::homing_callback, this, std::placeholders::_1, std::placeholders::_2));
-
-        // homing_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
-
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuration successful");
 
         return hardware_interface::CallbackReturn::SUCCESS;
@@ -418,29 +399,7 @@ namespace keya_driver_hardware_interface
                 {
                     RCLCPP_ERROR(rclcpp::get_logger("enable_decode_logger"), "%d", myNum);
                 }
-
-                // if (codec.decode_command_response(input_buffer))
-                // {
-                //     break;
-                // }
-                // else if (!codec.decode_command_response(input_buffer) && k==4)
-                // {
-                //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Cannot enable motor");
-                //     return hardware_interface::CallbackReturn::ERROR;
-                // }
             }
-            // can_read(std::chrono::milliseconds(200));
-            // std::cout << "decode_command_response: " << codec.decode_command_response(input_buffer) << std::endl;
-
-            // if(!codec.decode_command_response(input_buffer))
-            // {
-            //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Cannot enable motor");
-
-            //     return hardware_interface::CallbackReturn::ERROR;
-            // }
-            
-
-            // res.push_back(codec.decode_command_response(input_buffer));
 
             clear_buffer(input_buffer);
         }
@@ -482,22 +441,7 @@ namespace keya_driver_hardware_interface
 
         std::cout << "[KeyaDriverHW]: Shutting Down Motor Control..." << std::endl;
 
-        // rclcpp_lifecycle::State test_state;
-
         rcl_thread.~thread();
-
-        // on_deactivate(test_state);
-        // on_cleanup(test_state);
-
-        // // std::vector<bool> res;
-        // for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
-        // {
-        //     can_frame position_control_disable_frame = codec.encode_position_control_disable_request(can_id_list[i]);
-        //     can_write(position_control_disable_frame, std::chrono::milliseconds(200));
-        //     can_read(std::chrono::milliseconds(200));
-        //     // res.push_back(codec.decode_command_response(input_buffer));
-        //     clear_buffer(input_buffer);
-        // }
 
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Shutdown.");
 
@@ -508,13 +452,9 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        // double sleep_time = 0.001;
-        // double sleep_time = 5;
 
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
-            // can_frame req_curr_frame = codec.encode_current_request(can_id_list[i]);
-
             if (stream->is_open())
             {
                 /* ---------------------------------------------------------------------------- */
@@ -538,7 +478,6 @@ namespace keya_driver_hardware_interface
                 /* ---------------------------------------------------------------------------- */
                 /* READ motor current */
 
-                // can_write(req_curr_frame, std::chrono::milliseconds(100)); // Write a current read request
                 can_read(std::chrono::milliseconds(100));
                 can_frame current_response = input_buffer;
 
@@ -554,8 +493,6 @@ namespace keya_driver_hardware_interface
                     {
                         throw 505;
                     }
-
-                    // return hardware_interface::return_type::OK;
                 }
 
                 catch (int myNum)
@@ -578,21 +515,12 @@ namespace keya_driver_hardware_interface
                         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
                         raw_position = codec.decode_position_response(position_response) + pos_offset;
 
-                        // RCLCPP_INFO(rclcpp::get_logger("OFFSET_IN_READ"), "Offset in Read: %f", pos_offset);
-                        // RCLCPP_INFO(rclcpp::get_logger("RAW_IN_READ"), "Raw in Read: %f", raw_position);
-
                         current_position = raw_position; // + pos_offset;
-
-                        // RCLCPP_INFO(rclcpp::get_logger("CURRENTPOS_IN_READ"), "Current pos in Read: %f", current_position);
 
                         a_pos[i] = current_position;
 
                         state_transmissions[i]->actuator_to_joint();
                         hw_states_[0] = current_position;
-
-                        // current_current = codec.decode_current_response(input_buffer);
-
-                        // read_mtx.unlock();
 
                         clear_buffer(input_buffer);
 
@@ -604,7 +532,6 @@ namespace keya_driver_hardware_interface
                     }
                 }
 
-                // catch (std::runtime_error &e)
                 catch (int myNum)
                 {
                     RCLCPP_ERROR(rclcpp::get_logger("pos_decode_logger"), "%d", myNum);
@@ -646,17 +573,8 @@ namespace keya_driver_hardware_interface
             
             req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i] - pos_offset);
 
-            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Commanded position: %f", a_cmd_pos[i]);
-
             can_write(req_pos_cmd, std::chrono::milliseconds(100));
             can_read(std::chrono::milliseconds(100));
-
-            // if (!codec.decode_position_command_response(input_buffer))
-            // {
-            //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot request position command");
-
-            //     return hardware_interface::return_type::ERROR;
-            // }
         }
         return hardware_interface::return_type::OK;
     }    
@@ -713,20 +631,6 @@ namespace keya_driver_hardware_interface
         }
     }
 
-    // void KeyaDriverHW::homing()
-    // {
-    //     double current_threshold = 10;
-    //     // turning wheel all the way to the left
-    //     publisher_ = node->create_publisher<std_msgs::msg::Float64>("/position_controllers/command", 10);
-
-    // }
-
-    // void KeyaDriverHW::set_offset(double input_pos)
-    // {
-    //     pos_set = 10;
-    //     pos_offset = pos_set - input_pos;        
-    // }
-
     double KeyaDriverHW::set_offset()
     {
         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
@@ -743,7 +647,6 @@ namespace keya_driver_hardware_interface
 
         file.close(); 
 
-        // RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET"), "Pos_offset: %f", pos_offset);
         return pos_offset;
     }
 
@@ -764,14 +667,14 @@ namespace keya_driver_hardware_interface
         // turn wheel to the left
         while(!reach_current_threshold(current_threshold))
         {
-            RCLCPP_INFO(rclcpp::get_logger("CURRENT_CURRENT_LOGGER"), "Current_current: %f", current_current.load());
+            RCLCPP_DEBUG(rclcpp::get_logger("CURRENT_CURRENT_LOGGER"), "Current_current: %f", current_current.load());
             homing_publisher->publish(turn_left);
             std::this_thread::sleep_for(50ms);
         }
 
         set_offset();
-        RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET_OUT"), "Pos_offset: %f", pos_offset);
-        RCLCPP_INFO(rclcpp::get_logger("CURRENT_POS_LOGGER"), "Current_POS: %f", current_position);
+        RCLCPP_DEBUG(rclcpp::get_logger("POS_OFFSET_OUT"), "Pos_offset: %f", pos_offset);
+        RCLCPP_DEBUG(rclcpp::get_logger("CURRENT_POS_LOGGER"), "Current_POS: %f", current_position);
         std_msgs::msg::Float64MultiArray turn_right;
         turn_right.data.resize(1);
         turn_right.data[0] = 0.000000;
@@ -789,18 +692,9 @@ namespace keya_driver_hardware_interface
 
         std_msgs::msg::Float64MultiArray center;
         center.data.resize(1);
-        // center.data[0] = -pos_offset;
         center.data[0] = 0.00;
         centering_publisher->publish(center);
     }
-
-    // void KeyaDriverHW::handle_service()
-    // {
-    //     homing_service = node->create_service<std_srvs::srv::Trigger>("home", std::bind(&KeyaDriverHW::homing_callback, this,std::placeholders::_1, std::placeholders::_2));
-
-    //     homing_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
-    //     rclcpp::spin(node);
-    // }
 
     bool KeyaDriverHW::reach_current_threshold(double current_threshold)
     {
