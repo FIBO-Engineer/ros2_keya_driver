@@ -20,6 +20,10 @@
 #include <std_msgs/msg/float64.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
+#include <std_msgs/msg/bool.hpp>
+
+#include <realtime_tools/realtime_buffer.h>
+#include <realtime_tools/realtime_publisher.h>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "diagnostic_updater/diagnostic_status_wrapper.hpp"
@@ -131,6 +135,9 @@ namespace keya_driver_hardware_interface
 
         void init_centering();
 
+        // mode switching
+        void modeswitch_callback(const bool income_mode);
+
         // void set_offset(double input_pos);
 
         double set_offset();
@@ -143,6 +150,10 @@ namespace keya_driver_hardware_interface
 
         rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr init_center_publisher;
 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_subscriber;
+        realtime_tools::RealtimeBuffer<std::shared_ptr<std_msgs::msg::Bool>> mode_;
+        
+
         // products
         double raw_position;
         double current_position;
@@ -154,6 +165,9 @@ namespace keya_driver_hardware_interface
         double current_threshold;
         double pos_offset = 0;
         double pos_set;
+        bool curr_mode;
+        bool incoming_mode;
+        bool mode_change;
         // StatusSignal status_signal;
 
     };

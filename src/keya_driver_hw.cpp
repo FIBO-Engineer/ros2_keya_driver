@@ -9,6 +9,8 @@
 
 #include <std_srvs/srv/trigger.hpp>
 
+#include <std_msgs/msg/u_int16.hpp>
+
 #include "diagnostic_updater/diagnostic_updater.hpp"
 
 #include <rclcpp/rclcpp.hpp>
@@ -304,6 +306,10 @@ namespace keya_driver_hardware_interface
             centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
             centering_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
 
+            
+
+            mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::modeswitch_callback, this, std::placeholders::_1));
+
             // init_center_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
 
             rclcpp::spin(node);
@@ -560,6 +566,23 @@ namespace keya_driver_hardware_interface
             return hardware_interface::return_type::ERROR;
         }
 
+        if(mode_change)
+        {
+            if(curr_mode == true)
+            {
+                can_frame msg = codec.encode_position_control_enable_request(can_id_list[0]);
+                can_write(msg, std::chrono::milliseconds(200));
+                mode_change = false;
+            }
+            else if(curr_mode == false)
+            {
+                can_frame msg = codec.encode_position_control_disable_request(can_id_list[0]);
+                can_write(msg, std::chrono::milliseconds(200));
+                mode_change = false;
+            }
+            
+        }
+
         can_frame req_pos_cmd;
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
@@ -710,6 +733,14 @@ namespace keya_driver_hardware_interface
         }
     }
 
+    void KeyaDriverHW::modeswitch_callback(const bool income_mode)
+    {
+        if(curr_mode != income_mode)
+        {
+            curr_mode = income_mode;
+            mode_change = true;
+        }
+    }
 }
 
 #include "pluginlib/class_list_macros.hpp"
