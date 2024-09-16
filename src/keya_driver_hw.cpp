@@ -306,8 +306,6 @@ namespace keya_driver_hardware_interface
             centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
             centering_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
 
-            
-
             mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::modeswitch_callback, this, std::placeholders::_1));
 
             // init_center_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
@@ -578,6 +576,8 @@ namespace keya_driver_hardware_interface
             {
                 can_frame msg = codec.encode_position_control_disable_request(can_id_list[0]);
                 can_write(msg, std::chrono::milliseconds(200));
+                can_read(std::chrono::milliseconds(200));
+                clear_buffer(input_buffer);
                 mode_change = false;
             }
             
@@ -733,11 +733,12 @@ namespace keya_driver_hardware_interface
         }
     }
 
-    void KeyaDriverHW::modeswitch_callback(const bool income_mode)
+    void KeyaDriverHW::modeswitch_callback(const std_msgs::msg::Bool income_mode)
     {
-        if(curr_mode != income_mode)
+        bool bool_msg = income_mode.data;
+        if(curr_mode != bool_msg)
         {
-            curr_mode = income_mode;
+            curr_mode = bool_msg;
             mode_change = true;
         }
     }

@@ -136,7 +136,7 @@ namespace keya_driver_hardware_interface
         void init_centering();
 
         // mode switching
-        void modeswitch_callback(const bool income_mode);
+        void modeswitch_callback(const std_msgs::msg::Bool income_mode);
 
         // void set_offset(double input_pos);
 
