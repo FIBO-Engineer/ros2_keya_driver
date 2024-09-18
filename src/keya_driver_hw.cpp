@@ -393,6 +393,7 @@ namespace keya_driver_hardware_interface
                     }
                     else
                     {
+                        RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CANNOT ENABLE CONTROLLER");
                         throw 505;
                     }
 
@@ -495,6 +496,7 @@ namespace keya_driver_hardware_interface
                     }
                     else
                     {
+                        RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CANNOT READ MOTOR CURRENT");
                         throw 505;
                     }
                 }
@@ -532,7 +534,8 @@ namespace keya_driver_hardware_interface
                     }
                     else
                     {
-                        throw 505;
+                        RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CANNOT READ POSITION");
+                        // throw 505;
                     }
                 }
 
@@ -541,7 +544,7 @@ namespace keya_driver_hardware_interface
                     RCLCPP_ERROR(rclcpp::get_logger("pos_decode_logger"), "%d", myNum);
                 }
 
-                return hardware_interface::return_type::ERROR;
+                return hardware_interface::return_type::OK;
             }
             else
             {
@@ -566,14 +569,18 @@ namespace keya_driver_hardware_interface
 
         if(mode_change)
         {
-            if(curr_mode == true)
+            if(curr_mode == false)
             {
+                // std::cout << "Motor Enabled" << std::endl;
+                RCLCPP_INFO(rclcpp::get_logger("STEERING MODE SWITCH"),"Motor Enabled");
                 can_frame msg = codec.encode_position_control_enable_request(can_id_list[0]);
                 can_write(msg, std::chrono::milliseconds(200));
                 mode_change = false;
             }
-            else if(curr_mode == false)
+            else if(curr_mode == true)
             {
+                // std::cout << "Motor Disabled" << std::endl;
+                RCLCPP_INFO(rclcpp::get_logger("STEERING MODE SWITCH"),"Motor Disabled");
                 can_frame msg = codec.encode_position_control_disable_request(can_id_list[0]);
                 can_write(msg, std::chrono::milliseconds(200));
                 can_read(std::chrono::milliseconds(200));
