@@ -10,6 +10,10 @@
 
 namespace keya_driver_hardware_interface
 {
+    enum class MessageType {
+        HEARTBEAT,
+        CMD_RESPONSE
+    };
 
     class KeyaCodec
     {
@@ -37,6 +41,10 @@ namespace keya_driver_hardware_interface
         
         // Motor Disabling
         can_frame encode_position_control_disable_request(canid_t can_id);
+
+        MessageType msg_type;
+
+        MessageType getResponseType(const can_frame &input_buffer);
 
     };
 }

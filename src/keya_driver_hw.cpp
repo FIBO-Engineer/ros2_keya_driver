@@ -462,6 +462,56 @@ namespace keya_driver_hardware_interface
         {
             if (stream->is_open())
             {
+                can_read(std::chrono::milliseconds(100));
+
+                MessageType mt = codec.getResponseType(input_buffer);
+                switch(mt)
+                {
+                    case MessageType::HEARTBEAT:
+                        {
+                        // Read Diagnostic Message
+                        error_signal_0 = codec.decode_error_0_response(input_buffer);
+                        RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
+                        error_signal_1 = codec.decode_error_1_response(input_buffer);
+                        RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+
+                        // Read Motor Current
+                        can_read(std::chrono::milliseconds(100));
+                        can_frame current_response = input_buffer;
+
+                        current_current.store(codec.decode_current_response(current_response));// = codec.decode_current_response(current_response);
+                        RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current.load());
+                        clear_buffer(input_buffer);
+
+                        // Read Motor Position
+                        can_read(std::chrono::milliseconds(100));
+                        can_frame position_response = input_buffer;
+
+                        const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
+                        raw_position = codec.decode_position_response(position_response) + pos_offset;
+
+                        current_position = raw_position; // + pos_offset;
+
+                        a_pos[i] = current_position;
+
+                        state_transmissions[i]->actuator_to_joint();
+                        hw_states_[0] = current_position;
+
+                        clear_buffer(input_buffer);
+
+                        return hardware_interface::return_type::OK;
+
+                        }
+                    case MessageType::CMD_RESPONSE:
+                        RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type");
+                    
+                    default:
+                        {
+                        RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "FAIL");
+                        break;
+                        }
+                }
+ 
                 /* ---------------------------------------------------------------------------- */
                 /* READ Error DATA0 and DATA1 */
                 // std::cout << "-------------------------------------------------------" << std::endl;

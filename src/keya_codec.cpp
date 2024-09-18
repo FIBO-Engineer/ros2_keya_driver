@@ -12,6 +12,18 @@ namespace keya_driver_hardware_interface
 {
     KeyaCodec::KeyaCodec() {}
 
+    MessageType KeyaCodec::getResponseType(const can_frame &input_buffer)
+    {
+        if(input_buffer.data[0] == 0x60)
+        {
+            return MessageType::CMD_RESPONSE;
+        }
+        else
+        {
+            return MessageType::HEARTBEAT;
+        }
+    }
+
     can_frame KeyaCodec::encode_position_control_enable_request(canid_t can_id)
     {
         can_frame frame;
