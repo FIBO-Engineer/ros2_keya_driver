@@ -516,85 +516,85 @@ namespace keya_driver_hardware_interface
                 /* READ Error DATA0 and DATA1 */
                 // std::cout << "-------------------------------------------------------" << std::endl;
 
-                can_read(std::chrono::milliseconds(100));
+                // can_read(std::chrono::milliseconds(100));
 
-                if(codec.decode_command_response(input_buffer))
-                {
-                    error_signal_0 = codec.decode_error_0_response(input_buffer);
-                    RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
-                    error_signal_1 = codec.decode_error_1_response(input_buffer);
-                    RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
-                }
-                else
-                {
-                    RCLCPP_ERROR(rclcpp::get_logger("Error0_Debug"), "Error0: Cannot read error");
-                }
+                // if(codec.decode_command_response(input_buffer))
+                // {
+                //     error_signal_0 = codec.decode_error_0_response(input_buffer);
+                //     RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
+                //     error_signal_1 = codec.decode_error_1_response(input_buffer);
+                //     RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+                // }
+                // else
+                // {
+                //     RCLCPP_ERROR(rclcpp::get_logger("Error0_Debug"), "Error0: Cannot read error");
+                // }
 
                 /* ---------------------------------------------------------------------------- */
                 /* READ motor current */
 
-                can_read(std::chrono::milliseconds(100));
-                can_frame current_response = input_buffer;
+                // can_read(std::chrono::milliseconds(100));
+                // can_frame current_response = input_buffer;
 
-                try
-                {
-                    if(codec.decode_command_response(current_response))
-                    {
-                        current_current.store(codec.decode_current_response(current_response));// = codec.decode_current_response(current_response);
-                        RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current.load());
-                        clear_buffer(input_buffer);
-                    }
-                    else
-                    {
-                        RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CANNOT READ MOTOR CURRENT");
-                        throw 505;
-                    }
-                }
+                // try
+                // {
+                //     if(codec.decode_command_response(current_response))
+                //     {
+                //         current_current.store(codec.decode_current_response(current_response));// = codec.decode_current_response(current_response);
+                //         RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current.load());
+                //         clear_buffer(input_buffer);
+                //     }
+                //     else
+                //     {
+                //         RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CANNOT READ MOTOR CURRENT");
+                //         throw 505;
+                //     }
+                // }
 
-                catch (int myNum)
-                {
-                    RCLCPP_ERROR(rclcpp::get_logger("curr_decode_logger"), "%d", myNum);
-                }
+                // catch (int myNum)
+                // {
+                //     RCLCPP_ERROR(rclcpp::get_logger("curr_decode_logger"), "%d", myNum);
+                // }
 
                 /* ---------------------------------------------------------------------------- */
                 /* READ Current Position */
 
-                can_read(std::chrono::milliseconds(100));
+                // can_read(std::chrono::milliseconds(100));
                     
-                can_frame position_response = input_buffer;
-                try
-                {
-                    // read_mtx.lock();
+                // can_frame position_response = input_buffer;
+                // try
+                // {
+                //     // read_mtx.lock();
 
-                    // error_signal = codec.decode_error_response(input_buffer);
-                    if(codec.decode_command_response(position_response)){
-                        const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
-                        raw_position = codec.decode_position_response(position_response) + pos_offset;
+                //     // error_signal = codec.decode_error_response(input_buffer);
+                //     if(codec.decode_command_response(position_response)){
+                //         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
+                //         raw_position = codec.decode_position_response(position_response) + pos_offset;
 
-                        current_position = raw_position; // + pos_offset;
+                //         current_position = raw_position; // + pos_offset;
 
-                        a_pos[i] = current_position;
+                //         a_pos[i] = current_position;
 
-                        state_transmissions[i]->actuator_to_joint();
-                        hw_states_[0] = current_position;
+                //         state_transmissions[i]->actuator_to_joint();
+                //         hw_states_[0] = current_position;
 
-                        clear_buffer(input_buffer);
+                //         clear_buffer(input_buffer);
 
-                        return hardware_interface::return_type::OK;
-                    }
-                    else
-                    {
-                        RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CANNOT READ POSITION");
-                        // throw 505;
-                    }
-                }
+                //         return hardware_interface::return_type::OK;
+                //     }
+                //     else
+                //     {
+                //         RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CANNOT READ POSITION");
+                //         // throw 505;
+                //     }
+                // }
 
-                catch (int myNum)
-                {
-                    RCLCPP_ERROR(rclcpp::get_logger("pos_decode_logger"), "%d", myNum);
-                }
+                // catch (int myNum)
+                // {
+                //     RCLCPP_ERROR(rclcpp::get_logger("pos_decode_logger"), "%d", myNum);
+                // }
 
-                return hardware_interface::return_type::OK;
+                // return hardware_interface::return_type::OK;
             }
             else
             {
