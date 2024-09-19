@@ -14,13 +14,17 @@ namespace keya_driver_hardware_interface
 
     MessageType KeyaCodec::getResponseType(const can_frame &input_buffer)
     {
-        if(input_buffer.data[0] == 0x60)
+        if(input_buffer.can_id == 0x85800001)
         {
             return MessageType::CMD_RESPONSE;
         }
-        else
+        else if(input_buffer.can_id == 0x87000001)
         {
             return MessageType::HEARTBEAT;
+        }
+        else
+        {
+            return MessageType::UNKNOWN;
         }
     }
 

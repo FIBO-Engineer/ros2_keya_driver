@@ -71,10 +71,7 @@ namespace keya_driver_hardware_interface
         hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
         double a_pos[1];
-        double j_pos[1];
         double a_cmd_pos[1];
-        double j_cmd_pos[1];
-        double a_curr_pos[1];
 
     protected:
 

@@ -12,7 +12,8 @@ namespace keya_driver_hardware_interface
 {
     enum class MessageType {
         HEARTBEAT,
-        CMD_RESPONSE
+        CMD_RESPONSE,
+        UNKNOWN
     };
 
     class KeyaCodec
