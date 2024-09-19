@@ -383,32 +383,7 @@ namespace keya_driver_hardware_interface
             can_frame position_control_enable_frame = codec.encode_position_control_enable_request(can_id_list[i]);           
             can_write(position_control_enable_frame, std::chrono::milliseconds(200));
             // RCLCPP_INFO(rclcpp::get_logger("READ CAN"),"READ CAN.");
-            for (int k = 0; k < 5; k++)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                can_read(std::chrono::milliseconds(200));
-
-                try
-                {
-                    if(codec.decode_command_response(input_buffer))
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CANNOT ENABLE CONTROLLER");
-                        throw 505;
-                    }
-
-                    clear_buffer(input_buffer);
-
-                }
-                catch(int myNum)
-                {
-                    RCLCPP_ERROR(rclcpp::get_logger("enable_decode_logger"), "%d", myNum);
-                }
-            }
-
+            can_read(std::chrono::milliseconds(200));
             clear_buffer(input_buffer);
         }
 
