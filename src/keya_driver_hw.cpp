@@ -439,8 +439,6 @@ namespace keya_driver_hardware_interface
         {
             if (stream->is_open())
             {
-                clear_buffer(input_buffer);
-                
                 can_read(std::chrono::milliseconds(100));
                 MessageType mt = codec.getResponseType(input_buffer);
                 switch(mt)
@@ -466,7 +464,8 @@ namespace keya_driver_hardware_interface
                     }
                     case MessageType::CMD_RESPONSE:
                     {
-                        RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
+                        // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
+                        RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
                         break;
                     }
                     
@@ -484,7 +483,7 @@ namespace keya_driver_hardware_interface
             {
                 RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
                 throw std::runtime_error("CAN socket is not opened yet: read");
-                
+
                 return hardware_interface::return_type::ERROR;
             }
         }
@@ -658,10 +657,9 @@ namespace keya_driver_hardware_interface
 
     void KeyaDriverHW::modeswitch_callback(const std_msgs::msg::Bool income_mode)
     {
-        bool bool_msg = income_mode.data;
-        if(curr_mode != bool_msg)
+        if(curr_mode != income_mode.data)
         {
-            curr_mode = bool_msg;
+            curr_mode = income_mode.data;
             mode_change = true;
         }
     }
