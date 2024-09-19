@@ -381,9 +381,9 @@ namespace keya_driver_hardware_interface
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             can_frame position_control_enable_frame = codec.encode_position_control_enable_request(can_id_list[i]);           
-            can_write(position_control_enable_frame, std::chrono::milliseconds(200));
+            can_write(position_control_enable_frame, std::chrono::milliseconds(100));
             // RCLCPP_INFO(rclcpp::get_logger("READ CAN"),"READ CAN.");
-            can_read(std::chrono::milliseconds(200));
+            can_read(std::chrono::milliseconds(100));
             clear_buffer(input_buffer);
         }
 
@@ -403,8 +403,8 @@ namespace keya_driver_hardware_interface
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             can_frame position_control_disable_frame = codec.encode_position_control_disable_request(can_id_list[i]);
-            can_write(position_control_disable_frame, std::chrono::milliseconds(200));
-            can_read(std::chrono::milliseconds(200));
+            can_write(position_control_disable_frame, std::chrono::milliseconds(100));
+            can_read(std::chrono::milliseconds(100));
             res.push_back(codec.decode_command_response(input_buffer));
             clear_buffer(input_buffer);
         }
@@ -435,18 +435,18 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             if (stream->is_open())
             {
+                clear_buffer(input_buffer);
+                
                 can_read(std::chrono::milliseconds(100));
-
                 MessageType mt = codec.getResponseType(input_buffer);
                 switch(mt)
                 {
                     case MessageType::HEARTBEAT:
-                        {
+                    {
                         // Read Diagnostic Message
                         error_signal_0 = codec.decode_error_0_response(input_buffer);
                         RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
@@ -460,28 +460,23 @@ namespace keya_driver_hardware_interface
                         // Read Motor Position
                         const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
                         current_position = codec.decode_position_response(input_buffer) + pos_offset;
-
                         a_pos[i] = current_position;
-
                         state_transmissions[i]->actuator_to_joint();
-                        // hw_states_[0] = current_position;
-
-                        clear_buffer(input_buffer);
                         break;
-
-                        }
+                    }
                     case MessageType::CMD_RESPONSE:
-                        {
-                        RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type");
+                    {
+                        RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
                         break;
-                        }
+                    }
                     
                     default:
-                        {
+                    {
                         RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Unknown Message Type");
                         break;
-                        }
+                    }
                 }
+                clear_buffer(input_buffer);
                 return hardware_interface::return_type::OK;
 
             }
@@ -502,48 +497,26 @@ namespace keya_driver_hardware_interface
         {
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"CAN socket is not opened yet: write");
             throw std::runtime_error("CAN socket is not opened yet: write");
-
             return hardware_interface::return_type::ERROR;
         }
 
         if(mode_change)
         {
-            if(curr_mode == false)
-            {
-                // std::cout << "Motor Enabled" << std::endl;
-                RCLCPP_INFO(rclcpp::get_logger("STEERING MODE SWITCH"),"Motor Enabled");
-                can_frame msg = codec.encode_position_control_enable_request(can_id_list[0]);
-                can_write(msg, std::chrono::milliseconds(200));
-                can_read(std::chrono::milliseconds(200));
-                clear_buffer(input_buffer);
-                mode_change = false;
-            }
-            else if(curr_mode == true)
-            {
-                // std::cout << "Motor Disabled" << std::endl;
-                RCLCPP_INFO(rclcpp::get_logger("STEERING MODE SWITCH"),"Motor Disabled");
-                can_frame msg = codec.encode_position_control_disable_request(can_id_list[0]);
-                can_write(msg, std::chrono::milliseconds(200));
-                can_read(std::chrono::milliseconds(200));
-                clear_buffer(input_buffer);
-                mode_change = false;
-            }
-            
+            can_frame msg = curr_mode ? codec.encode_position_control_disable_request(can_id_list[0]) 
+                            : codec.encode_position_control_enable_request(can_id_list[0]);
+            can_write(msg, std::chrono::milliseconds(100));
+            can_read(std::chrono::milliseconds(100));
+            clear_buffer(input_buffer);
+            mode_change = false;
         }
 
         can_frame req_pos_cmd;
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
-            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "hw_command_[0]: %f", hw_commands_[0]);
-
             double enc_pos = hw_commands_[0]; 
-            command_transmissions[i] -> joint_to_actuator();
-            // RCLCPP_INFO(rclcpp::get_logger("KeyaCodec"),"hw_cmd: %f", hw_commands_[0]);
-    
+            command_transmissions[i]->joint_to_actuator();
             a_cmd_pos[i] = enc_pos; // - pos_offset;
-            
             req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i] - pos_offset);
-
             can_write(req_pos_cmd, std::chrono::milliseconds(100));
             can_read(std::chrono::milliseconds(100));
             clear_buffer(input_buffer);
@@ -588,6 +561,7 @@ namespace keya_driver_hardware_interface
         for (int i = 0; i < CAN_MAX_DLC; i++)
         {
             input_buffer.data[i] = 0x00;
+            input_buffer.can_id = 0x00000000;
         }
     }
 

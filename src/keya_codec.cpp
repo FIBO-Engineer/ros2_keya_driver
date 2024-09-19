@@ -241,9 +241,8 @@ namespace keya_driver_hardware_interface
     
     ErrorSignal KeyaCodec::decode_error_0_response(can_frame &input_buffer)
     {
-
         ErrorSignal es;
-        if( input_buffer.can_id == 0x87000001 )
+        if(input_buffer.can_id == 0x87000001 )
         {
             uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[6]);
 
@@ -255,27 +254,20 @@ namespace keya_driver_hardware_interface
             es.RESERVED = err_sig & (1 << 2);
             es.MOTSTALL = err_sig & (1 << 1);
             es.LSPHS = err_sig & (1 << 0);
-
-            return es;
         }
         else
         {
-            // RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
-
-            return es;
+            RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
         }
-
+        return es;
     }
 
     ErrorSignal1 KeyaCodec::decode_error_1_response(can_frame &input_buffer)
     {
-
         ErrorSignal1 es1;
-
         if( input_buffer.can_id == 0x87000001 )
         {
             uint8_t err_sig = static_cast<uint8_t>(input_buffer.data[7]);
-
             es1.MODEFAIL = err_sig & (1 << 7);
             es1.OVRCURR = err_sig & (1 << 6);
             es1.NA = err_sig & (1 << 5);
@@ -284,17 +276,13 @@ namespace keya_driver_hardware_interface
             es1.HRDWRPROT = err_sig & (1 << 2);
             es1.OVRVOLT = err_sig & (1 << 1);
             es1.DISABLE = err_sig & (1 << 0);
-
-            return es1;
         }
         else
         {
-            // RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
-
-            return es1;
+            RCLCPP_ERROR(rclcpp::get_logger("error0_logger"),"Byte reading is incorrect.");
         }
-        // return es1;
 
+        return es1;
     }
 
 
