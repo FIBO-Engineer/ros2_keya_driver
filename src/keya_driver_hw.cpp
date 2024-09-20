@@ -464,8 +464,8 @@ namespace keya_driver_hardware_interface
                     }
                     case MessageType::CMD_RESPONSE:
                     {
-                        // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
-                        RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
+                        RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
+                        // RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
                         break;
                     }
                     
@@ -518,6 +518,24 @@ namespace keya_driver_hardware_interface
             req_pos_cmd = codec.encode_position_command_request(can_id_list[i], a_cmd_pos[i] - pos_offset);
             can_write(req_pos_cmd, std::chrono::milliseconds(100));
             can_read(std::chrono::milliseconds(100));
+            MessageType mt = codec.getResponseType(input_buffer);
+            switch (mt)
+            {
+                case MessageType::CMD_RESPONSE:
+                {
+                    break;
+                }
+                case MessageType::HEARTBEAT:
+                {
+                    RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Response Type: HEARTBEAT");
+                    break;
+                }
+                case MessageType::UNKNOWN:
+                {
+                    RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Response Type: UNKNOWN");
+                    break;
+                }
+            }
             clear_buffer(input_buffer);
         }
         return hardware_interface::return_type::OK;
