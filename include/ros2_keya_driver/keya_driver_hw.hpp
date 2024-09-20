@@ -106,10 +106,14 @@ namespace keya_driver_hardware_interface
         can_frame input_buffer;
         can_frame read_frame;
 
+        can_frame homing_pos_cmd;
+
         // raw object
         std::mutex read_mtx;
         //std::mutex current_reading_mutex;
         std::mutex rawpos_reading_mutex;
+        std::mutex curr_pos_mutex;
+        std::mutex homing_mutex;
 
         // diagnostic
         rclcpp::Node::SharedPtr node;
@@ -129,6 +133,8 @@ namespace keya_driver_hardware_interface
 
         void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+
+        void homing_cmd();
 
         void init_centering();
 
@@ -165,6 +171,7 @@ namespace keya_driver_hardware_interface
         bool curr_mode;
         bool incoming_mode;
         bool mode_change;
+        bool is_homing;
         // StatusSignal status_signal;
 
     };
