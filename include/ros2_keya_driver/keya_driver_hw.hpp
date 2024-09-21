@@ -107,6 +107,7 @@ namespace keya_driver_hardware_interface
         can_frame read_frame;
 
         can_frame homing_pos_cmd;
+        can_frame centering_pos_cmd;
 
         // raw object
         std::mutex read_mtx;
@@ -131,13 +132,12 @@ namespace keya_driver_hardware_interface
         void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
-        void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+        // void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+        //                                 std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+        void centering_callback(const std_msgs::msg::Bool income_center);
 
         void homing_cmd();
-
-        void init_centering();
-
+        
         // mode switching
         void modeswitch_callback(const std_msgs::msg::Bool income_mode);
 
@@ -155,6 +155,8 @@ namespace keya_driver_hardware_interface
 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_subscriber;
         realtime_tools::RealtimeBuffer<std::shared_ptr<std_msgs::msg::Bool>> mode_;
+
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr center_subscriber;
         
 
         // products
@@ -172,6 +174,7 @@ namespace keya_driver_hardware_interface
         bool incoming_mode;
         bool mode_change;
         bool is_homing;
+        bool is_centering;
         // StatusSignal status_signal;
 
     };
