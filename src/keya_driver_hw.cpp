@@ -390,10 +390,10 @@ namespace keya_driver_hardware_interface
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Enabled.");
 
         /* -------------------------- Homing -----------------------------*/
-        is_homing = true;
 
-        // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Initializing Homing.");
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Homing Initialized...");
         
+        is_homing = true;
         // current_threshold = 17;
         // std_msgs::msg::Float64MultiArray turn_left;
         // turn_left.data.resize(1);
@@ -543,7 +543,7 @@ namespace keya_driver_hardware_interface
         {
             const std::lock_guard<std::mutex> lock(homing_mutex);
             homing_cmd();
-            is_homing = false;
+            // is_homing = false;
             req_pos_cmd = homing_pos_cmd;
         }
         else
@@ -636,46 +636,25 @@ namespace keya_driver_hardware_interface
         }
     }
 
-    // double KeyaDriverHW::set_offset()
-    // {
-    //     const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
-    //     // pos_set = 10;
-    //     RCLCPP_INFO(rclcpp::get_logger("RAWPOS_LOGGER"), "raw_pos: %f", raw_position);
-    //     pos_offset = 0.5 - raw_position; 
-
-    //     // create json file to save pos_offset
-    //     json j;
-    //     j["offset"] = pos_offset;
-
-    //     std::ofstream file("/home/yamaha02/ros2_ws/src/ros2_keya_driver/config/offset.json");
-    //     file << j;
-
-    //     file.close(); 
-
-    //     return pos_offset;
-    // }
-
     void KeyaDriverHW::homing_cmd()
     {
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Homing Initialized...");
-               
         current_threshold = 17;
-        // turn wheel to the left
+        
         if(!reach_current_threshold(current_threshold))
         {
+            // turn wheel to the left
             RCLCPP_DEBUG(rclcpp::get_logger("CURRENT_CURRENT_LOGGER"), "Current_current: %f", current_current.load());
-            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], 6.0);
+            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], 1.0);
             RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Homing...");
-            // can_write(homing_pos_cmd, std::chrono::milliseconds(100));
-            // can_read(std::chrono::milliseconds(100));
         }
         else
         {
-            // RCLCPP_INFO(rclcpp::get_logger("RAWPOS_LOGGER"), "raw_pos: %f", raw_position);
-            pos_offset = 0.5 - raw_position; 
-            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], 0);
-            // can_write(homing_pos_cmd, std::chrono::milliseconds(100));
-            // can_read(std::chrono::milliseconds(100));
+            // turn wheel to the right
+            is_homing = false;
+            pos_offset = 0.498 - current_position; 
+            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], pos_offset);
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "position offset: %f", pos_offset);
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "current position: %f", current_position);
         }
     }
 
