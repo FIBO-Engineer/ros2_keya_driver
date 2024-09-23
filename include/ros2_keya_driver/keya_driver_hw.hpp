@@ -126,8 +126,6 @@ namespace keya_driver_hardware_interface
 
         // Homing Service
 
-        // void homing();
-        bool reach_current_threshold(double threshold);
         void handle_service();
 
         void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
@@ -136,8 +134,6 @@ namespace keya_driver_hardware_interface
         // void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
         //                                 std::shared_ptr<std_srvs::srv::Trigger::Response> response);
         void centering_callback(const std_msgs::msg::Bool income_center);
-
-        void homing_cmd();
         
         // mode switching
         void modeswitch_callback(const std_msgs::msg::Bool income_mode);
@@ -168,8 +164,8 @@ namespace keya_driver_hardware_interface
         ErrorSignal error_signal_0;
         ErrorSignal1 error_signal_1;
         std::atomic<double> current_current;
-        double current_threshold;
-        double pos_offset = 0;
+
+        double pos_offset = 0.0;
         double pos_set;
         bool curr_mode;
         bool incoming_mode;
@@ -178,6 +174,7 @@ namespace keya_driver_hardware_interface
         bool is_centering;
         // StatusSignal status_signal;
 
+        static const double CURRENT_THRESHOLD = 16.0;
     };
 }
 
