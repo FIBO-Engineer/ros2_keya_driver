@@ -155,8 +155,8 @@ namespace keya_driver_hardware_interface
         std::atomic<OperationState> centering_state;
         
 
-        static constexpr double max_wheel_right = -1.0;
-        static constexpr double max_wheel_left = 1.0;
+        static constexpr double max_wheel_right = -25.0;
+        static constexpr double max_wheel_left = 25.0;
 
         static constexpr double CENTER_TO_RIGHT_DIST = -11.52;  //0.512 * 22.5
         static constexpr double CENTER_TO_LEFT_DIST = 11.20; //0.498 * 22.5
