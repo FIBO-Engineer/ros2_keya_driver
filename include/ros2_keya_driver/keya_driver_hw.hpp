@@ -167,14 +167,14 @@ namespace keya_driver_hardware_interface
         std::atomic<OperationState> centering_state;
         
 
-        static const double current_threshold = 16;
-        static const double max_wheel_right = -1.0;
-        static const double max_wheel_left = 1.0;
-        static const double right_offset = 0.512;
-        static const double left_offset = 0.498;
+        static constexpr double current_threshold = 16;
+        static constexpr double max_wheel_right = -1.0;
+        static constexpr double max_wheel_left = 1.0;
+        static constexpr double right_offset = 0.512;
+        static constexpr double left_offset = 0.498;
 
-        static const double CURRENT_THRESHOLD = 16.0;
-        static const double POSITION_TOLERANCE = 0.5;
+        static constexpr double CURRENT_THRESHOLD = 16.0;
+        static constexpr double POSITION_TOLERANCE = 0.5;
     };
 }
 
