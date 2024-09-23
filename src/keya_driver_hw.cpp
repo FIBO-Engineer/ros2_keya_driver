@@ -388,7 +388,7 @@ namespace keya_driver_hardware_interface
 
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Homing Initialized...");
         
-        is_homing = true;
+        homing_state = OperationState::DOING;
 
         /*--------------------------End Homing----------------------------*/
 
@@ -438,59 +438,46 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
+        if (stream->is_open())
         {
-            if (stream->is_open())
-            {
-                can_read(std::chrono::milliseconds(100));
-                MessageType mt = codec.getResponseType(input_buffer);
-                switch(mt)
-                {
-                    case MessageType::HEARTBEAT:
-                    {
-
-                        const std::lock_guard<std::mutex> lock(curr_pos_mutex);
-                        // Read Diagnostic Message
-                        error_signal_0 = codec.decode_error_0_response(input_buffer);
-                        RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
-                        error_signal_1 = codec.decode_error_1_response(input_buffer);
-                        RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
-
-                        // Read Motor Current
-                        current_current.store(codec.decode_current_response(input_buffer));// = codec.decode_current_response(current_response);
-                        RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current.load());
-
-                        // Read Motor Position
-                        current_position = codec.decode_position_response(input_buffer) + pos_offset;
-                        a_pos[i] = current_position;
-                        state_transmissions[i]->actuator_to_joint();
-                        break;
-                    }
-                    case MessageType::CMD_RESPONSE:
-                    {
-                        RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
-                        // RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
-                        break;
-                    }
-                    
-                    default:
-                    {
-                        RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Unknown Message Type");
-                        break;
-                    }
-                }
+            MessageType mt;
+            int read_count = 0;
+            do {
                 clear_buffer(input_buffer);
-                return hardware_interface::return_type::OK;
+                can_read(std::chrono::milliseconds(100));
+                mt = codec.getResponseType(input_buffer);
+                if(++read_count >= 5) {
+                    RCLCPP_DEBUG(rclcpp::get_logger("READ"), "Heartbeat message was not found for five consequtive frames");
+                    return hardware_interface::return_type::ERROR;
+                }
+            } while(mt != MessageType::HEARTBEAT);
 
-            }
-            else
-            {
-                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
-                throw std::runtime_error("CAN socket is not opened yet: read");
+            const std::lock_guard<std::mutex> lock(read_mtx);
+            // Read Diagnostic Message
+            error_signal_0 = codec.decode_error_0_response(input_buffer);
+            RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
+            error_signal_1 = codec.decode_error_1_response(input_buffer);
+            RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
 
-                return hardware_interface::return_type::ERROR;
-            }
+            // Read Motor Current
+            current_current = codec.decode_current_response(input_buffer);// = codec.decode_current_response(current_response);
+            RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current);
+
+            // Read Motor Position
+            current_position = codec.decode_position_response(input_buffer) + pos_offset;
+            a_pos[0] = current_position;
+            state_transmissions[0]->actuator_to_joint();
+
+            clear_buffer(input_buffer);
+            return hardware_interface::return_type::OK;
         }
+        else
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
+            throw std::runtime_error("CAN socket is not opened yet: read");
+            return hardware_interface::return_type::ERROR;
+        }
+    
         return hardware_interface::return_type::OK;
     }
 
@@ -503,57 +490,38 @@ namespace keya_driver_hardware_interface
             return hardware_interface::return_type::ERROR;
         }
 
+        can_frame cmd_frame;
         if(mode_change)
         {
-            can_frame msg = curr_mode ? codec.encode_position_control_disable_request(can_id_list[0]) 
-                            : codec.encode_position_control_enable_request(can_id_list[0]);
-            can_write(msg, std::chrono::milliseconds(100));
-            can_read(std::chrono::milliseconds(100));
-            clear_buffer(input_buffer);
+            cmd_frame = curr_mode ? codec.encode_position_control_disable_request(can_id_list[0]) 
+                                    : codec.encode_position_control_enable_request(can_id_list[0]);
             mode_change = false;
-        }
-
-        can_frame req_pos_cmd;
-        if(is_homing)
+        } else if(homing_state == OperationState::DOING)
         {
-            const std::lock_guard<std::mutex> lock(homing_mutex);
-            homing_cmd();
-            req_pos_cmd = homing_pos_cmd;
-        }
-        else
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], -1.0);
+            const std::lock_guard<std::mutex> lock(read_mtx);
+            if(std::fabs(current_current) > CURRENT_THRESHOLD)
+            {
+                pos_offset = 0.512 + current_position; 
+                homing_state = OperationState::DONE;
+                centering_state = OperationState::DOING;
+            }
+            
+        } else if(centering_state == OperationState::DOING)
+        {
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], 0.00);
+            if(std::fabs(current_position) < POSITION_TOLERANCE)
+            {
+                centering_state = OperationState::DONE;
+            }
+        } else
         {
             double enc_pos = hw_commands_[0]; 
             command_transmissions[0]->joint_to_actuator();
             a_cmd_pos[0] = enc_pos; // - pos_offset;
-            req_pos_cmd = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
-        }   
-        can_write(req_pos_cmd, std::chrono::milliseconds(100));
-        can_read(std::chrono::milliseconds(100));
-
-        MessageType mt = codec.getResponseType(input_buffer);
-        switch (mt)
-        {
-            case MessageType::CMD_RESPONSE:
-            {
-                break;
-            }
-            case MessageType::HEARTBEAT:
-            {
-                RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Response Type: HEARTBEAT");
-                const std::lock_guard<std::mutex> lock(rawpos_reading_mutex);
-                current_position = codec.decode_position_response(input_buffer) + pos_offset;
-                a_pos[0] = current_position;
-                state_transmissions[0]->actuator_to_joint();
-                break;
-            }
-            case MessageType::UNKNOWN:
-            {
-                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Response Type: UNKNOWN");
-                break;
-            }
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
         }
-        clear_buffer(input_buffer);
-
+        can_write(cmd_frame, std::chrono::milliseconds(100));
         
         return hardware_interface::return_type::OK;
     }    
@@ -611,38 +579,15 @@ namespace keya_driver_hardware_interface
         }
     }
 
-    void KeyaDriverHW::homing_cmd()
-    {        
-        if(!reach_current_threshold(current_threshold))
-        {
-            // turn wheel to the left
-            RCLCPP_DEBUG(rclcpp::get_logger("CURRENT_CURRENT_LOGGER"), "Current_current: %f", current_current.load());
-            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], max_wheel_right);
-        }
-        else
-        {
-            // turn wheel to the right
-            is_homing = false;
-            pos_offset = right_offset + current_position; 
-            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], pos_offset);
-            RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "position offset: %f", pos_offset);
-            RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "current position: %f", current_position);
-        }
-    }
-
     void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
                                                     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
         response->success = true;
         response->message = "";
         RCLCPP_INFO(rclcpp::get_logger("CENTERING_LOG"), "Centering Initialized...");
-        // std_msgs::msg::Float64MultiArray center;
-        // center.data.resize(1);
-        // center.data[0] = 0.00;
-        // centering_publisher->publish(center);
         auto start_time = std::chrono::steady_clock::now();
-        is_centering = true;
-        while(is_centering)
+        centering_state = OperationState::DOING;
+        while(centering_state == OperationState::DOING)
         {
             // get current time
             auto current_time = std::chrono::steady_clock::now();
@@ -653,28 +598,12 @@ namespace keya_driver_hardware_interface
             if (elapsed_time >= 5)
             {
                 RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Centering Failed.");
-                is_centering = false;
+                centering_state = OperationState::FAILED;
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            
         }
-    }
-
-    bool KeyaDriverHW::reach_current_threshold(double current_threshold)
-    {
-        // const std::lock_guard<std::mutex> lock(current_reading_mutex);
-        const std::lock_guard<std::mutex> lock(curr_pos_mutex);
-
-        if (fabs(current_current.load()) >= current_threshold){
-            RCLCPP_DEBUG(rclcpp::get_logger("THRESHOLD_LOGGER"), "THRESHOLD REACHED");
-            return true;
-        }
-        else{
-            RCLCPP_DEBUG(rclcpp::get_logger("THRESHOLD_LOGGER"), "FALSE %f %f" , fabs(current_current), fabs(current_threshold));
-            return false;
-
-        }
+        // TODO: Return message
     }
 
     void KeyaDriverHW::modeswitch_callback(const std_msgs::msg::Bool income_mode)
