@@ -520,12 +520,6 @@ namespace keya_driver_hardware_interface
             homing_cmd();
             req_pos_cmd = homing_pos_cmd;
         }
-        else if(is_centering)
-        {
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Centering...");
-            req_pos_cmd = codec.encode_position_command_request(can_id_list[0], 0.00);
-            is_centering = false;
-        }
         else
         {
             double enc_pos = hw_commands_[0]; 
@@ -534,8 +528,18 @@ namespace keya_driver_hardware_interface
             req_pos_cmd = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
         }   
 
+        if(is_centering)
+        {  
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "checking current position: %f", current_position);
+            req_pos_cmd = codec.encode_position_command_request(can_id_list[0], 0.00);
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "req_pos_cmd for center sent");
+            is_centering = false;
+        }
+
         can_write(req_pos_cmd, std::chrono::milliseconds(100));
         can_read(std::chrono::milliseconds(100));
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Current Position: %f", current_position);
+
         MessageType mt = codec.getResponseType(input_buffer);
         switch (mt)
         {
@@ -619,20 +623,19 @@ namespace keya_driver_hardware_interface
 
     void KeyaDriverHW::homing_cmd()
     {
-        current_threshold = 17;
+        current_threshold = 16;
         
         if(!reach_current_threshold(current_threshold))
         {
             // turn wheel to the left
             RCLCPP_DEBUG(rclcpp::get_logger("CURRENT_CURRENT_LOGGER"), "Current_current: %f", current_current.load());
-            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], 1.0);
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Homing...");
+            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], -1.0);
         }
         else
         {
             // turn wheel to the right
             is_homing = false;
-            pos_offset = 0.498 - current_position; 
+            pos_offset = 0.5 + current_position; 
             homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], pos_offset);
             RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "position offset: %f", pos_offset);
             RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "current position: %f", current_position);

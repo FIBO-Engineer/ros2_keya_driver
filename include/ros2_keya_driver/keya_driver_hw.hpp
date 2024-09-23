@@ -115,6 +115,7 @@ namespace keya_driver_hardware_interface
         std::mutex rawpos_reading_mutex;
         std::mutex curr_pos_mutex;
         std::mutex homing_mutex;
+        std::mutex centering_mutex;
 
         // diagnostic
         rclcpp::Node::SharedPtr node;
