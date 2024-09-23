@@ -495,7 +495,7 @@ namespace keya_driver_hardware_interface
             mode_change = false;
         } else if(homing_state == OperationState::DOING)
         {
-            cmd_frame = codec.encode_position_command_request(can_id_list[0], -1.0);
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], -max_wheel_right);
             const std::lock_guard<std::mutex> lock(read_mtx);
             if(std::fabs(current_current) > CURRENT_THRESHOLD)
             {
