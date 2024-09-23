@@ -650,9 +650,10 @@ namespace keya_driver_hardware_interface
             auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
 
             // check if 5 seconds have passed
-            if (elapsed_time >=5)
+            if (elapsed_time >= 5)
             {
                 RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Centering Failed.");
+                is_centering = false;
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
