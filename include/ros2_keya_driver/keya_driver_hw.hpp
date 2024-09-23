@@ -32,7 +32,6 @@
 
 #include <fstream>
 #include <atomic>
-#include <nlohmann/json.hpp>
 
 namespace keya_driver_hardware_interface
 {

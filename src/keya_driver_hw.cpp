@@ -23,13 +23,10 @@
 #include <iostream>
 
 #include <fstream>
-#include <nlohmann/json.hpp>
-
 
 namespace keya_driver_hardware_interface
 {
     using namespace std::chrono_literals;
-    using json = nlohmann::json;
 
     hardware_interface::CallbackReturn KeyaDriverHW::on_init(const hardware_interface::HardwareInfo & info)
     {
