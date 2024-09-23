@@ -123,7 +123,8 @@ namespace keya_driver_hardware_interface
         void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
-        void centering_callback(const std_msgs::msg::Bool income_center);
+        void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
         
         // mode switching
         void modeswitch_callback(const std_msgs::msg::Bool income_mode);
@@ -166,6 +167,11 @@ namespace keya_driver_hardware_interface
         OperationState homing_state;
         OperationState centering_state;
         // StatusSignal status_signal;
+        static const double current_threshold = 16;
+        static const double max_wheel_right = -1.0;
+        static const double max_wheel_left = 1.0;
+        static const double right_offset = 0.512;
+        static const double left_offset = 0.498;
 
 
 

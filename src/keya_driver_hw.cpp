@@ -579,15 +579,31 @@ namespace keya_driver_hardware_interface
         }
     }
 
-    void KeyaDriverHW::centering_callback(const std_msgs::msg::Bool income_center)
+    void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+                                                    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
         response->success = true;
         response->message = "";
         RCLCPP_INFO(rclcpp::get_logger("CENTERING_LOG"), "Centering Initialized...");
-        std_msgs::msg::Float64MultiArray center;
-        center.data.resize(1);
-        center.data[0] = 0.00;
-        centering_publisher->publish(center);
+        auto start_time = std::chrono::steady_clock::now();
+        centering_state = OperationState::DOING;
+        while(centering_state == OperationState::DOING)
+        {
+            // get current time
+            auto current_time = std::chrono::steady_clock::now();
+            // calculate elapse time
+            auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
+
+            // check if 5 seconds have passed
+            if (elapsed_time >= 5)
+            {
+                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Centering Failed.");
+                centering_state = OperationState::FAILED;
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        // TODO: Return message
     }
 
     void KeyaDriverHW::modeswitch_callback(const std_msgs::msg::Bool income_mode)
