@@ -612,20 +612,18 @@ namespace keya_driver_hardware_interface
     }
 
     void KeyaDriverHW::homing_cmd()
-    {
-        current_threshold = 16;
-        
+    {        
         if(!reach_current_threshold(current_threshold))
         {
             // turn wheel to the left
             RCLCPP_DEBUG(rclcpp::get_logger("CURRENT_CURRENT_LOGGER"), "Current_current: %f", current_current.load());
-            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], -1.0);
+            homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], max_wheel_right);
         }
         else
         {
             // turn wheel to the right
             is_homing = false;
-            pos_offset = 0.512 + current_position; 
+            pos_offset = right_offset + current_position; 
             homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], pos_offset);
             RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "position offset: %f", pos_offset);
             RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "current position: %f", current_position);
@@ -638,10 +636,28 @@ namespace keya_driver_hardware_interface
         response->success = true;
         response->message = "";
         RCLCPP_INFO(rclcpp::get_logger("CENTERING_LOG"), "Centering Initialized...");
-        std_msgs::msg::Float64MultiArray center;
-        center.data.resize(1);
-        center.data[0] = 0.00;
-        centering_publisher->publish(center);
+        // std_msgs::msg::Float64MultiArray center;
+        // center.data.resize(1);
+        // center.data[0] = 0.00;
+        // centering_publisher->publish(center);
+        auto start_time = std::chrono::steady_clock::now();
+        is_centering = true;
+        while(is_centering)
+        {
+            // get current time
+            auto current_time = std::chrono::steady_clock::now();
+            // calculate elapse time
+            auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
+
+            // check if 5 seconds have passed
+            if (elapsed_time >=5)
+            {
+                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Centering Failed.");
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            
+        }
     }
 
     bool KeyaDriverHW::reach_current_threshold(double current_threshold)
