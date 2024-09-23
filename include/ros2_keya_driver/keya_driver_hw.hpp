@@ -103,10 +103,6 @@ namespace keya_driver_hardware_interface
         std::shared_ptr<boost::asio::posix::basic_stream_descriptor<>> stream;
         // boost::asio::posix::basic_stream_descriptor<> stream;
         can_frame input_buffer;
-        can_frame read_frame;
-
-        can_frame homing_pos_cmd;
-        can_frame centering_pos_cmd;
 
         // lock for all read object
         std::mutex read_mtx;
@@ -128,17 +124,11 @@ namespace keya_driver_hardware_interface
         // mode switching
         void modeswitch_callback(const std_msgs::msg::Bool income_mode);
 
-        // void set_offset(double input_pos);
-
         double set_offset();
 
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
-        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr homing_publisher;
 
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;
-        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr centering_publisher;
-
-        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr init_center_publisher;
 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_subscriber;
         realtime_tools::RealtimeBuffer<std::shared_ptr<std_msgs::msg::Bool>> mode_;
@@ -147,19 +137,17 @@ namespace keya_driver_hardware_interface
         
 
         // products
-        double raw_position;
         double current_position;
-        double current_command;
-        uint16_t alarm_code;
+        double current_current;
         ErrorSignal error_signal_0;
         ErrorSignal1 error_signal_1;
-        double current_current;
+        uint16_t alarm_code;
+
+        double min_raw_position;
 
         double pos_offset = 0.0;
-        double pos_set;
-        bool curr_mode;
-        bool incoming_mode;
-        bool mode_change;
+        bool is_analog_mode;
+        bool has_mode_changed;
 
         enum OperationState: uint8_t {IDLE = 0, DONE = 1, DOING = 2, FAILED = 3};
 
@@ -167,14 +155,13 @@ namespace keya_driver_hardware_interface
         std::atomic<OperationState> centering_state;
         
 
-        static constexpr double current_threshold = 16;
         static constexpr double max_wheel_right = -1.0;
         static constexpr double max_wheel_left = 1.0;
-        static constexpr double right_offset = 0.512;
-        static constexpr double left_offset = 0.498;
 
+        static constexpr double CENTER_TO_RIGHT_DIST = 11.52;  //0.512 * 22.5
+        static constexpr double CENTER_TO_LEFT_DIST = 11.20; //0.498 * 22.5
         static constexpr double CURRENT_THRESHOLD = 16.0;
-        static constexpr double POSITION_TOLERANCE = 0.5;
+        static constexpr double POSITION_TOLERANCE = 0.002; //0.5;
     };
 }
 

@@ -163,7 +163,6 @@ namespace keya_driver_hardware_interface
 
     double KeyaCodec::decode_position_response(can_frame &input_buffer)
     {
-        static double prev_position;
         double curr_position_rad;
 
         // ------------------This block checks first three bytes of the response code-----------------------------
@@ -171,31 +170,17 @@ namespace keya_driver_hardware_interface
         // if ( input_buffer.data[0] == 0x60 && input_buffer.data[1] == 0x04 && input_buffer.data[2] == 0x21)
         if( input_buffer.can_id == 0x87000001 )
         {
-            prev_position = 0.00;
             // curr_position_rad;
 
-            int32_t curr_position = prev_position;
+            int16_t curr_position;
             *(uint8_t *)(&curr_position) = input_buffer.data[1];
             *((uint8_t *)(&curr_position) + 1) = input_buffer.data[0];
-            // *((uint8_t *)(&curr_position) + 2) = input_buffer.data[6];
-            // *((uint8_t *)(&curr_position) + 3) = input_buffer.data[7];
+            // RCLCPP_INFO(rclcpp::get_logger("RAW_POSITION"), "Raw Position %d", curr_position);
 
             curr_position_rad = curr_position * ( M_PI / 180 );
             curr_position_rad = curr_position_rad / 22.5;
 
-            if(curr_position_rad > 30)
-            {
-                curr_position_rad = curr_position_rad - 1143.8;
-            }
-
-            prev_position = curr_position_rad;
-            if(prev_position < 0)
-            {
-                prev_position = prev_position + 1092.965152;
-            }
-            RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
-
-            return prev_position;
+            return curr_position_rad;
 
         }
         else
@@ -206,32 +191,26 @@ namespace keya_driver_hardware_interface
                 std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(input_buffer.data[i]) << " ";
             }
             RCLCPP_ERROR(rclcpp::get_logger("position_logger"), "Cannot read position.");
-            return prev_position;
+            return 0.0;
         }
+
     }
 
     double KeyaCodec::decode_current_response(can_frame &input_buffer)
     {
-        double motor_current;
+        double motor_current = 0.0;
 
         // ----------------------This block checks the first three bytes of the response code--------------------------
 
         if( input_buffer.can_id == 0x87000001 )
         {
-            motor_current = 0;
-
-            int32_t current_motor_current = motor_current;
+            int16_t current_motor_current = motor_current;
             *(uint8_t *)(&current_motor_current) = input_buffer.data[5];
             *((uint8_t *)(&current_motor_current) + 1) = input_buffer.data[4];
 
             motor_current = current_motor_current;
 
-            if(motor_current > 60000 && motor_current < 66000)
-            {
-                motor_current = 65530 - motor_current ;
-            }
-
-            RCLCPP_DEBUG(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
+            // RCLCPP_INFO(rclcpp::get_logger("current_logger"), "motor current: %f", motor_current);
 
             return motor_current;
         }

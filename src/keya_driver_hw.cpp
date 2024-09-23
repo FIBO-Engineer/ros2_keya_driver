@@ -301,8 +301,7 @@ namespace keya_driver_hardware_interface
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_1);
 
             centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
-            centering_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
-
+            
             mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::modeswitch_callback, this, std::placeholders::_1));
             // center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
 
@@ -450,20 +449,25 @@ namespace keya_driver_hardware_interface
             } while(mt != MessageType::HEARTBEAT);
 
             const std::lock_guard<std::mutex> lock(read_mtx);
-            // Read Diagnostic Message
-            error_signal_0 = codec.decode_error_0_response(input_buffer);
-            RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
-            error_signal_1 = codec.decode_error_1_response(input_buffer);
-            RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+
+            // Read Motor Position
+            current_position = codec.decode_position_response(input_buffer);
+            if(current_position < min_raw_position) {
+                min_raw_position = current_position;
+            }
+        
+            a_pos[0] = current_position + pos_offset;
+            state_transmissions[0]->actuator_to_joint();
 
             // Read Motor Current
             current_current = codec.decode_current_response(input_buffer);// = codec.decode_current_response(current_response);
             RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current);
 
-            // Read Motor Position
-            current_position = codec.decode_position_response(input_buffer) + pos_offset;
-            a_pos[0] = current_position;
-            state_transmissions[0]->actuator_to_joint();
+            // Read Diagnostic Message
+            error_signal_0 = codec.decode_error_0_response(input_buffer);
+            RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
+            error_signal_1 = codec.decode_error_1_response(input_buffer);
+            RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
 
             clear_buffer(input_buffer);
             return hardware_interface::return_type::OK;
@@ -488,22 +492,32 @@ namespace keya_driver_hardware_interface
         }
 
         can_frame cmd_frame;
-        if(mode_change)
+        if(has_mode_changed)
         {
-            cmd_frame = curr_mode ? codec.encode_position_control_disable_request(can_id_list[0]) 
+            cmd_frame = is_analog_mode ? codec.encode_position_control_disable_request(can_id_list[0]) 
                                     : codec.encode_position_control_enable_request(can_id_list[0]);
-            mode_change = false;
+            has_mode_changed = false;
         } else if(homing_state == OperationState::DOING)
         {
+            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CURRENT CHECK: %f, THRESHOLD: %f", current_current, CURRENT_THRESHOLD);
             cmd_frame = codec.encode_position_command_request(can_id_list[0], max_wheel_right);
             const std::lock_guard<std::mutex> lock(read_mtx);
-            if(std::fabs(current_current) > CURRENT_THRESHOLD)
-            {
-                pos_offset = 0.512 + current_position; 
-                homing_state = OperationState::DONE;
-                centering_state = OperationState::DOING;
-            }
             
+            static bool has_set_offset = false;
+            if(!has_set_offset) {
+                if(std::fabs(current_current) > CURRENT_THRESHOLD || error_signal_1.OVRCURR)
+                {
+                    // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "THRESHOLD REACHED");
+                    cmd_frame = codec.encode_position_control_disable_request(can_id_list[0]);
+                    has_set_offset = true;
+                }
+            } else {
+                cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]);
+                pos_offset = CENTER_TO_RIGHT_DIST + min_raw_position;
+                centering_state = OperationState::DOING;
+                homing_state = OperationState::DONE;
+                has_set_offset = false;
+            }
         } else if(centering_state == OperationState::DOING)
         {
             cmd_frame = codec.encode_position_command_request(can_id_list[0], 0.00);
@@ -513,10 +527,10 @@ namespace keya_driver_hardware_interface
             }
         } else
         {
-            double enc_pos = hw_commands_[0]; 
+            // double enc_pos = hw_commands_[0];
             command_transmissions[0]->joint_to_actuator();
-            a_cmd_pos[0] = enc_pos; // - pos_offset;
-            cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
+            a_cmd_pos[0] += pos_offset;
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0]);
         }
         can_write(cmd_frame, std::chrono::milliseconds(100));
         
@@ -592,7 +606,7 @@ namespace keya_driver_hardware_interface
             auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
 
             // check if 5 seconds have passed
-            if (elapsed_time >= 5)
+            if (elapsed_time >= 4)
             {
                 RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Centering Failed.");
                 centering_state = OperationState::FAILED;
@@ -612,10 +626,10 @@ namespace keya_driver_hardware_interface
 
     void KeyaDriverHW::modeswitch_callback(const std_msgs::msg::Bool income_mode)
     {
-        if(curr_mode != income_mode.data)
+        if(is_analog_mode != income_mode.data)
         {
-            curr_mode = income_mode.data;
-            mode_change = true;
+            is_analog_mode = income_mode.data;
+            has_mode_changed = true;
         }
     }
 }
