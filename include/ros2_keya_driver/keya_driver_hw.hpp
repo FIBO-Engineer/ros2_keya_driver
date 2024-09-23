@@ -163,16 +163,15 @@ namespace keya_driver_hardware_interface
 
         enum OperationState: uint8_t {IDLE = 0, DONE = 1, DOING = 2, FAILED = 3};
 
-        OperationState homing_state;
-        OperationState centering_state;
-        // StatusSignal status_signal;
+        std::atomic<OperationState> homing_state;
+        std::atomic<OperationState> centering_state;
+        
+
         static const double current_threshold = 16;
         static const double max_wheel_right = -1.0;
         static const double max_wheel_left = 1.0;
         static const double right_offset = 0.512;
         static const double left_offset = 0.498;
-
-
 
         static const double CURRENT_THRESHOLD = 16.0;
         static const double POSITION_TOLERANCE = 0.5;
