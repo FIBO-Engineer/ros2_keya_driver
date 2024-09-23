@@ -388,7 +388,7 @@ namespace keya_driver_hardware_interface
 
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Homing Initialized...");
         
-        is_homing = true;
+        homing_state = OperationState::DOING;
 
         /*--------------------------End Homing----------------------------*/
 
@@ -438,59 +438,46 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
+        if (stream->is_open())
         {
-            if (stream->is_open())
-            {
-                can_read(std::chrono::milliseconds(100));
-                MessageType mt = codec.getResponseType(input_buffer);
-                switch(mt)
-                {
-                    case MessageType::HEARTBEAT:
-                    {
-
-                        const std::lock_guard<std::mutex> lock(curr_pos_mutex);
-                        // Read Diagnostic Message
-                        error_signal_0 = codec.decode_error_0_response(input_buffer);
-                        RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
-                        error_signal_1 = codec.decode_error_1_response(input_buffer);
-                        RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
-
-                        // Read Motor Current
-                        current_current.store(codec.decode_current_response(input_buffer));// = codec.decode_current_response(current_response);
-                        RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current.load());
-
-                        // Read Motor Position
-                        current_position = codec.decode_position_response(input_buffer) + pos_offset;
-                        a_pos[i] = current_position;
-                        state_transmissions[i]->actuator_to_joint();
-                        break;
-                    }
-                    case MessageType::CMD_RESPONSE:
-                    {
-                        RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
-                        // RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "Incorrect Message Type, got Command Response");
-                        break;
-                    }
-                    
-                    default:
-                    {
-                        RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Unknown Message Type");
-                        break;
-                    }
-                }
+            MessageType mt;
+            int read_count = 0;
+            do {
                 clear_buffer(input_buffer);
-                return hardware_interface::return_type::OK;
+                can_read(std::chrono::milliseconds(100));
+                mt = codec.getResponseType(input_buffer);
+                if(++read_count >= 5) {
+                    RCLCPP_DEBUG(rclcpp::get_logger("READ"), "Heartbeat message was not found for five consequtive frames");
+                    return hardware_interface::return_type::ERROR;
+                }
+            } while(mt != MessageType::HEARTBEAT);
 
-            }
-            else
-            {
-                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
-                throw std::runtime_error("CAN socket is not opened yet: read");
+            const std::lock_guard<std::mutex> lock(read_mtx);
+            // Read Diagnostic Message
+            error_signal_0 = codec.decode_error_0_response(input_buffer);
+            RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
+            error_signal_1 = codec.decode_error_1_response(input_buffer);
+            RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
 
-                return hardware_interface::return_type::ERROR;
-            }
+            // Read Motor Current
+            current_current = codec.decode_current_response(input_buffer);// = codec.decode_current_response(current_response);
+            RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current);
+
+            // Read Motor Position
+            current_position = codec.decode_position_response(input_buffer) + pos_offset;
+            a_pos[0] = current_position;
+            state_transmissions[0]->actuator_to_joint();
+
+            clear_buffer(input_buffer);
+            return hardware_interface::return_type::OK;
         }
+        else
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
+            throw std::runtime_error("CAN socket is not opened yet: read");
+            return hardware_interface::return_type::ERROR;
+        }
+    
         return hardware_interface::return_type::OK;
     }
 
@@ -508,46 +495,33 @@ namespace keya_driver_hardware_interface
         {
             cmd_frame = curr_mode ? codec.encode_position_control_disable_request(can_id_list[0]) 
                                     : codec.encode_position_control_enable_request(can_id_list[0]);
-            can_write(msg, std::chrono::milliseconds(100));
             mode_change = false;
-        } else if(is_homing)
+        } else if(homing_state == OperationState::DOING)
         {
-            const std::lock_guard<std::mutex> lock(curr_pos_mutex);
-            
-            if(fabs(current_current.load()) < CURRENT_THRESHOLD)
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], -1.0);
+            const std::lock_guard<std::mutex> lock(read_mtx);
+            if(std::fabs(current_current) > CURRENT_THRESHOLD)
             {
-                // turn wheel to the left
-                RCLCPP_DEBUG(rclcpp::get_logger("CURRENT_CURRENT_LOGGER"), "Current_current: %f", current_current.load());
-                homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], -1.0);
-            }
-            else
-            {
-                // turn wheel to the right
                 pos_offset = 0.5 + current_position; 
-                homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], pos_offset);
-                RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "position offset: %f", pos_offset);
-                RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "current position: %f", current_position);
-                is_homing = false;
+                homing_state = OperationState::DONE;
+                centering_state = OperationState::DOING;
             }
-            req_pos_cmd = homing_pos_cmd;
-        } else if(is_centering)
-        {  
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "checking current position: %f", current_position);
-            req_pos_cmd = codec.encode_position_command_request(can_id_list[0], 0.00);
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "req_pos_cmd for center sent");
-            is_centering = false;
+            
+        } else if(centering_state == OperationState::DOING)
+        {
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], 0.00);
+            if(std::fabs(current_position) < POSITION_TOLERANCE)
+            {
+                centering_state = OperationState::DONE;
+            }
         } else
         {
             double enc_pos = hw_commands_[0]; 
             command_transmissions[0]->joint_to_actuator();
             a_cmd_pos[0] = enc_pos; // - pos_offset;
-            req_pos_cmd = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
-        }   
-
-
-
-        can_write(req_pos_cmd, std::chrono::milliseconds(100));
-        clear_buffer(input_buffer);
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
+        }
+        can_write(cmd_frame, std::chrono::milliseconds(100));
         
         return hardware_interface::return_type::OK;
     }    

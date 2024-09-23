@@ -109,13 +109,8 @@ namespace keya_driver_hardware_interface
         can_frame homing_pos_cmd;
         can_frame centering_pos_cmd;
 
-        // raw object
+        // lock for all read object
         std::mutex read_mtx;
-        //std::mutex current_reading_mutex;
-        std::mutex rawpos_reading_mutex;
-        std::mutex curr_pos_mutex;
-        std::mutex homing_mutex;
-        std::mutex centering_mutex;
 
         // diagnostic
         rclcpp::Node::SharedPtr node;
@@ -125,9 +120,6 @@ namespace keya_driver_hardware_interface
         std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater;
 
         // Homing Service
-
-        void handle_service();
-
         void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
@@ -163,18 +155,24 @@ namespace keya_driver_hardware_interface
         uint16_t alarm_code;
         ErrorSignal error_signal_0;
         ErrorSignal1 error_signal_1;
-        std::atomic<double> current_current;
+        double current_current;
 
         double pos_offset = 0.0;
         double pos_set;
         bool curr_mode;
         bool incoming_mode;
         bool mode_change;
-        bool is_homing;
-        bool is_centering;
+
+        enum OperationState: uint8_t {IDLE = 0, DONE = 1, DOING = 2, FAILED = 3};
+
+        OperationState homing_state;
+        OperationState centering_state;
         // StatusSignal status_signal;
 
+
+
         static const double CURRENT_THRESHOLD = 16.0;
+        static const double POSITION_TOLERANCE = 0.5;
     };
 }
 
