@@ -303,11 +303,11 @@ namespace keya_driver_hardware_interface
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_0);
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_1);
 
-            // centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
-            // centering_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
+            centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
+            centering_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
 
             mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::modeswitch_callback, this, std::placeholders::_1));
-            center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
+            // center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
 
             rclcpp::spin(node);
             rclcpp::shutdown();
@@ -502,7 +502,7 @@ namespace keya_driver_hardware_interface
             const std::lock_guard<std::mutex> lock(read_mtx);
             if(std::fabs(current_current) > CURRENT_THRESHOLD)
             {
-                pos_offset = 0.5 + current_position; 
+                pos_offset = 0.512 + current_position; 
                 homing_state = OperationState::DONE;
                 centering_state = OperationState::DOING;
             }
@@ -581,10 +581,13 @@ namespace keya_driver_hardware_interface
 
     void KeyaDriverHW::centering_callback(const std_msgs::msg::Bool income_center)
     {
-        if(income_center.data == true)
-        {
-            is_centering = true;
-        }
+        response->success = true;
+        response->message = "";
+        RCLCPP_INFO(rclcpp::get_logger("CENTERING_LOG"), "Centering Initialized...");
+        std_msgs::msg::Float64MultiArray center;
+        center.data.resize(1);
+        center.data[0] = 0.00;
+        centering_publisher->publish(center);
     }
 
     void KeyaDriverHW::modeswitch_callback(const std_msgs::msg::Bool income_mode)

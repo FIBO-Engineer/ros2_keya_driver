@@ -123,8 +123,6 @@ namespace keya_driver_hardware_interface
         void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
-        // void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-        //                                 std::shared_ptr<std_srvs::srv::Trigger::Response> response);
         void centering_callback(const std_msgs::msg::Bool income_center);
         
         // mode switching
