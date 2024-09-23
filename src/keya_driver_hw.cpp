@@ -303,11 +303,11 @@ namespace keya_driver_hardware_interface
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_0);
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_1);
 
-            // centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
-            // centering_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
+            centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
+            centering_publisher = node->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 1);
 
             mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::modeswitch_callback, this, std::placeholders::_1));
-            center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
+            // center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
 
             rclcpp::spin(node);
             rclcpp::shutdown();
@@ -527,18 +527,8 @@ namespace keya_driver_hardware_interface
             a_cmd_pos[0] = enc_pos; // - pos_offset;
             req_pos_cmd = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
         }   
-
-        if(is_centering)
-        {  
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "checking current position: %f", current_position);
-            req_pos_cmd = codec.encode_position_command_request(can_id_list[0], 0.00);
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "req_pos_cmd for center sent");
-            is_centering = false;
-        }
-
         can_write(req_pos_cmd, std::chrono::milliseconds(100));
         can_read(std::chrono::milliseconds(100));
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Current Position: %f", current_position);
 
         MessageType mt = codec.getResponseType(input_buffer);
         switch (mt)
@@ -635,19 +625,23 @@ namespace keya_driver_hardware_interface
         {
             // turn wheel to the right
             is_homing = false;
-            pos_offset = 0.5 + current_position; 
+            pos_offset = 0.512 + current_position; 
             homing_pos_cmd = codec.encode_position_command_request(can_id_list[0], pos_offset);
             RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "position offset: %f", pos_offset);
             RCLCPP_DEBUG(rclcpp::get_logger("KeyaDriverHW"), "current position: %f", current_position);
         }
     }
 
-    void KeyaDriverHW::centering_callback(const std_msgs::msg::Bool income_center)
+    void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+                                                    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
-        if(income_center.data == true)
-        {
-            is_centering = true;
-        }
+        response->success = true;
+        response->message = "";
+        RCLCPP_INFO(rclcpp::get_logger("CENTERING_LOG"), "Centering Initialized...");
+        std_msgs::msg::Float64MultiArray center;
+        center.data.resize(1);
+        center.data[0] = 0.00;
+        centering_publisher->publish(center);
     }
 
     bool KeyaDriverHW::reach_current_threshold(double current_threshold)

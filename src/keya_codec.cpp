@@ -188,9 +188,12 @@ namespace keya_driver_hardware_interface
                 curr_position_rad = curr_position_rad - 1143.8;
             }
 
-            RCLCPP_INFO(rclcpp::get_logger("position_logger"), "curr_position_rad: %f", curr_position_rad);
             prev_position = curr_position_rad;
-            RCLCPP_DEBUG(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
+            if(prev_position < 0)
+            {
+                prev_position = prev_position + 1092.965152;
+            }
+            RCLCPP_INFO(rclcpp::get_logger("position_logger"), "current pos: %f", prev_position);
 
             return prev_position;
 
