@@ -23,13 +23,10 @@
 #include <iostream>
 
 #include <fstream>
-#include <nlohmann/json.hpp>
-
 
 namespace keya_driver_hardware_interface
 {
     using namespace std::chrono_literals;
-    using json = nlohmann::json;
 
     hardware_interface::CallbackReturn KeyaDriverHW::on_init(const hardware_interface::HardwareInfo & info)
     {
@@ -582,9 +579,9 @@ namespace keya_driver_hardware_interface
     void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
                                                     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
-        response->success = true;
-        response->message = "";
         RCLCPP_INFO(rclcpp::get_logger("CENTERING_LOG"), "Centering Initialized...");
+        response->success = false;
+        response->message = "Unknown error";
         auto start_time = std::chrono::steady_clock::now();
         centering_state = OperationState::DOING;
         while(centering_state == OperationState::DOING)
@@ -599,11 +596,18 @@ namespace keya_driver_hardware_interface
             {
                 RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Centering Failed.");
                 centering_state = OperationState::FAILED;
+                response->success = false;
+                response->message = "Timeout";
+                break;
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        // TODO: Return message
+
+        if(centering_state == OperationState::DONE) {
+            response->success = true;
+            response->message = "Centering Completed";
+        }
     }
 
     void KeyaDriverHW::modeswitch_callback(const std_msgs::msg::Bool income_mode)
