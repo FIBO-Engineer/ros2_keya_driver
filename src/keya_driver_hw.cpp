@@ -454,10 +454,13 @@ namespace keya_driver_hardware_interface
             current_position = codec.decode_position_response(input_buffer);
             if(current_position < min_raw_position) {
                 min_raw_position = current_position;
+                RCLCPP_INFO(rclcpp::get_logger("MIN_RAW_POSITION"), "min_raw_position: %f", min_raw_position);
             }
         
             a_pos[0] = current_position + pos_offset;
             state_transmissions[0]->actuator_to_joint();
+            RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "a_pos[0]: %f", a_pos[0]);
+            RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "hw_states_[0]: %f", hw_states_[0]);
 
             // Read Motor Current
             current_current = codec.decode_current_response(input_buffer);// = codec.decode_current_response(current_response);
@@ -513,14 +516,15 @@ namespace keya_driver_hardware_interface
                 }
             } else {
                 cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]);
-                pos_offset = CENTER_TO_RIGHT_DIST + min_raw_position;
+                pos_offset = CENTER_TO_RIGHT_DIST - min_raw_position;
+                RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET"), "POS_OFFSET: %f", pos_offset);
                 centering_state = OperationState::DOING;
                 homing_state = OperationState::DONE;
                 has_set_offset = false;
             }
         } else if(centering_state == OperationState::DOING)
         {
-            cmd_frame = codec.encode_position_command_request(can_id_list[0], 0.00);
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], -pos_offset);
             if(std::fabs(current_position) < POSITION_TOLERANCE)
             {
                 centering_state = OperationState::DONE;
@@ -529,7 +533,7 @@ namespace keya_driver_hardware_interface
         {
             // double enc_pos = hw_commands_[0];
             command_transmissions[0]->joint_to_actuator();
-            a_cmd_pos[0] += pos_offset;
+            a_cmd_pos[0] -= pos_offset;
             cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0]);
         }
         can_write(cmd_frame, std::chrono::milliseconds(100));
