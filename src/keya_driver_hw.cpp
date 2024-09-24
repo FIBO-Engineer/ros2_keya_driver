@@ -493,6 +493,8 @@ namespace keya_driver_hardware_interface
         can_frame cmd_frame;
         // If mode is mismatched.
         bool should_disable = analog_mode.readFromRT()->data;
+        static bool prev_should_disable = should_disable;
+        // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "should_disable:%d, prev_should_disable:%d", should_disable, prev_should_disable);
         if(homing_state == OperationState::DOING)
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CURRENT CHECK: %f, THRESHOLD: %f", current_current, CURRENT_THRESHOLD);
@@ -510,24 +512,33 @@ namespace keya_driver_hardware_interface
         {
             const std::lock_guard<std::mutex> lock(read_mtx);
             if(error_signal_1.OVRCURR) {
+                // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "1");
                 cmd_frame = codec.encode_position_control_disable_request(can_id_list[0]);
             } else {
                 if(error_signal_1.DISABLE) {
+                    // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "2");
                     cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]);
                 } else {
+                    // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "3");
                     cmd_frame = codec.encode_position_command_request(can_id_list[0], -pos_offset);
                     if(std::fabs(a_pos[0]) < POSITION_TOLERANCE)
                     {
+                        // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "4");
+                        std::lock_guard<std::mutex> lock(centering_mtx);
                         centering_state = OperationState::DONE;
+                        centering_cv.notify_one();
                     }
                 }
             }
-        } else if (is_disabled() != should_disable)
+        } else if (prev_should_disable != should_disable)
         {
+            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "5");
             cmd_frame = should_disable ? codec.encode_position_control_disable_request(can_id_list[0]) 
                                     : codec.encode_position_control_enable_request(can_id_list[0]);
+            prev_should_disable = should_disable;
         } else
         {
+            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "6");
             command_transmissions[0]->joint_to_actuator();
             a_cmd_pos[0] -= pos_offset;
             cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0]);
@@ -591,48 +602,32 @@ namespace keya_driver_hardware_interface
     }
 
     void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
-                                                    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Centering Initialized...");
+        std::unique_lock<std::mutex> lock(centering_mtx);
+        centering_state = OperationState::DOING;
         response->success = false;
         response->message = "Unknown error";
-        auto start_time = std::chrono::steady_clock::now();
-        centering_state = OperationState::DOING;
-        while(centering_state == OperationState::DOING)
-        {
-            // get current time
-            auto current_time = std::chrono::steady_clock::now();
-            // calculate elapse time
-            auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
 
-            // check if 5 seconds have passed
-            if (elapsed_time >= 4)
-            {
-                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Centering Failed.");
-                centering_state = OperationState::FAILED;
+        // Wait for state change or timeout
+        if(centering_cv.wait_for(lock, std::chrono::seconds(4), [&]{ return centering_state != OperationState::DOING; })) {
+            if(centering_state == OperationState::DONE) {
+                response->success = true;
+                response->message = "Centering Completed";
+            } else {
                 response->success = false;
-                response->message = "Timeout";
-                break;
+                response->message = "Centering Failed.";
             }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-
-        if(centering_state == OperationState::DONE) {
-            response->success = true;
-            response->message = "Centering Completed";
+        } else {
+            centering_state = OperationState::FAILED;
+            response->success = false;
+            response->message = "Timeout";
         }
     }
 
     void KeyaDriverHW::analog_mode_callback(const std::shared_ptr<std_msgs::msg::Bool> _mode)
     {
         analog_mode.writeFromNonRT(*_mode);
-    }
-
-    bool KeyaDriverHW::is_disabled()
-    {
-        const std::lock_guard<std::mutex> lock(read_mtx);
-        return error_signal_1.DISABLE;
     }
 }
 

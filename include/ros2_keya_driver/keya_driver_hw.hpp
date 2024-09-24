@@ -124,8 +124,6 @@ namespace keya_driver_hardware_interface
         // mode switching
         void analog_mode_callback(const std::shared_ptr<std_msgs::msg::Bool> _mode);
 
-        bool is_disabled();
-
         // rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
 
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;
@@ -147,6 +145,9 @@ namespace keya_driver_hardware_interface
 
         std::atomic<OperationState> homing_state;
         std::atomic<OperationState> centering_state;
+
+        std::mutex centering_mtx;
+        std::condition_variable centering_cv;
         
 
         static constexpr double max_wheel_right = -25.0;
