@@ -136,7 +136,7 @@ namespace keya_driver_hardware_interface
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr center_subscriber;
         
 
-        double current_position;
+        double current_position_unoffset;
         double current_current;
         ErrorSignal error_signal_0;
         ErrorSignal1 error_signal_1;

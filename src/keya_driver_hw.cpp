@@ -456,13 +456,13 @@ namespace keya_driver_hardware_interface
         const std::lock_guard<std::mutex> lock(read_mtx);
 
         // Read Motor Position
-        current_position = codec.decode_position_response(input_buffer);
-        if(current_position < min_raw_position) {
-            min_raw_position = current_position;
+        current_position_unoffset = codec.decode_position_response(input_buffer);
+        if(current_position_unoffset < min_raw_position) {
+            min_raw_position = current_position_unoffset;
             // RCLCPP_DEBUG(rclcpp::get_logger("MIN_RAW_POSITION"), "min_raw_position: %f", min_raw_position);
         }
     
-        a_pos[0] = current_position + pos_offset;
+        a_pos[0] = current_position_unoffset + pos_offset;
         state_transmissions[0]->actuator_to_joint();
         // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "a_pos[0]: %f", a_pos[0]);
         // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "hw_states_[0]: %f", hw_states_[0]);
@@ -489,18 +489,12 @@ namespace keya_driver_hardware_interface
             throw std::runtime_error("CAN socket is not opened yet: write");
             return hardware_interface::return_type::ERROR;
         }
-        const std::lock_guard<std::mutex> lock(read_mtx);
 
         can_frame cmd_frame;
         // If mode is mismatched.
         bool should_disable = analog_mode.readFromRT()->data;
         static bool prev_should_disable = should_disable;
-        if(prev_should_disable != should_disable)
-        {
-            cmd_frame = should_disable ? codec.encode_position_control_disable_request(can_id_list[0]) 
-                                    : codec.encode_position_control_enable_request(can_id_list[0]);
-            prev_should_disable = should_disable;
-        } else if(homing_state == OperationState::DOING)
+        if(homing_state == OperationState::DOING)
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CURRENT CHECK: %f, THRESHOLD: %f", current_current, CURRENT_THRESHOLD);
             cmd_frame = codec.encode_position_command_request(can_id_list[0], max_wheel_right);
@@ -510,14 +504,14 @@ namespace keya_driver_hardware_interface
                 const std::lock_guard<std::mutex> lock(read_mtx);
                 if(std::fabs(current_current) > CURRENT_THRESHOLD || error_signal_1.OVRCURR)
                 {
-                    // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "THRESHOLD REACHED");
+                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "THRESHOLD REACHED");
                     cmd_frame = codec.encode_position_control_disable_request(can_id_list[0]);
                     has_set_offset = true;
                 }
             } else {
                 cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]);
                 pos_offset = CENTER_TO_RIGHT_DIST - min_raw_position;
-                RCLCPP_INFO(rclcpp::get_logger("POS_OFFSET"), "POS_OFFSET: %f", pos_offset);
+                RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "POS_OFFSET: %f", pos_offset);
                 centering_state = OperationState::DOING;
                 homing_state = OperationState::DONE;
                 has_set_offset = false;
@@ -525,10 +519,16 @@ namespace keya_driver_hardware_interface
         } else if(centering_state == OperationState::DOING)
         {
             cmd_frame = codec.encode_position_command_request(can_id_list[0], -pos_offset);
-            if(std::fabs(current_position) < POSITION_TOLERANCE)
+            if(std::fabs(a_pos[0]) < POSITION_TOLERANCE)
             {
                 centering_state = OperationState::DONE;
             }
+        } else if (prev_should_disable != should_disable)
+        {
+            cmd_frame = should_disable ? codec.encode_position_control_disable_request(can_id_list[0]) 
+                                    : codec.encode_position_control_enable_request(can_id_list[0]);
+            prev_should_disable = should_disable;
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Should Disable: %d", should_disable);
         } else
         {
             // double enc_pos = hw_commands_[0];
@@ -597,7 +597,7 @@ namespace keya_driver_hardware_interface
     void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
                                                     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
-        RCLCPP_INFO(rclcpp::get_logger("CENTERING_LOG"), "Centering Initialized...");
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Centering Initialized...");
         response->success = false;
         response->message = "Unknown error";
         auto start_time = std::chrono::steady_clock::now();
