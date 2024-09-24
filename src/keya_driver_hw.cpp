@@ -495,11 +495,13 @@ namespace keya_driver_hardware_interface
         }
 
         can_frame cmd_frame;
-        if(has_mode_changed)
+        // If mode is mismatched.
+        bool _should_disable = analog_mode.readFromRT()->data;
+        if( (error_signal_1.DISABLE && !_should_disable) || 
+            (!error_signal_1.DISABLE && _should_disable))
         {
-            cmd_frame = is_analog_mode ? codec.encode_position_control_disable_request(can_id_list[0]) 
+            cmd_frame = _should_disable ? codec.encode_position_control_disable_request(can_id_list[0]) 
                                     : codec.encode_position_control_enable_request(can_id_list[0]);
-            has_mode_changed = false;
         } else if(homing_state == OperationState::DOING)
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CURRENT CHECK: %f, THRESHOLD: %f", current_current, CURRENT_THRESHOLD);
@@ -628,9 +630,9 @@ namespace keya_driver_hardware_interface
         }
     }
 
-    void KeyaDriverHW::analog_mode_callback(const std_msgs::msg::Bool income_mode)
+    void KeyaDriverHW::analog_mode_callback(const std::shared_ptr<std_msgs::msg::Bool> _mode)
     {
-        analog_mode.
+        analog_mode.writeFromNonRT(*_mode);
     }
 }
 
