@@ -220,7 +220,7 @@ namespace keya_driver_hardware_interface
     void KeyaDriverHW::produce_diagnostics_1(diagnostic_updater::DiagnosticStatusWrapper &stat)
     {
         uint16_t _alarm_code;
-        keya_driver_hardware_interface::ErrorSignal1 _error_signal_1;
+        ErrorSignal1 _error_signal_1;
         read_mtx.lock();
         _alarm_code = this->alarm_code;
         _error_signal_1 = this->error_signal_1;
@@ -434,54 +434,50 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        if (stream->is_open())
-        {
-            MessageType mt;
-            int read_count = 0;
-            do {
-                clear_buffer(input_buffer);
-                can_read(std::chrono::milliseconds(100));
-                mt = codec.getResponseType(input_buffer);
-                if(++read_count >= 5) {
-                    RCLCPP_DEBUG(rclcpp::get_logger("READ"), "Heartbeat message was not found for five consequtive frames");
-                    return hardware_interface::return_type::ERROR;
-                }
-            } while(mt != MessageType::HEARTBEAT);
-
-            const std::lock_guard<std::mutex> lock(read_mtx);
-
-            // Read Motor Position
-            current_position = codec.decode_position_response(input_buffer);
-            if(current_position < min_raw_position) {
-                min_raw_position = current_position;
-                RCLCPP_DEBUG(rclcpp::get_logger("MIN_RAW_POSITION"), "min_raw_position: %f", min_raw_position);
-            }
-        
-            a_pos[0] = current_position + pos_offset;
-            state_transmissions[0]->actuator_to_joint();
-            // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "a_pos[0]: %f", a_pos[0]);
-            // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "hw_states_[0]: %f", hw_states_[0]);
-
-            // Read Motor Current
-            current_current = codec.decode_current_response(input_buffer);// = codec.decode_current_response(current_response);
-            RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current);
-
-            // Read Diagnostic Message
-            error_signal_0 = codec.decode_error_0_response(input_buffer);
-            RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
-            error_signal_1 = codec.decode_error_1_response(input_buffer);
-            RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
-
-            clear_buffer(input_buffer);
-            return hardware_interface::return_type::OK;
-        }
-        else
+        if (!stream->is_open())
         {
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
             throw std::runtime_error("CAN socket is not opened yet: read");
             return hardware_interface::return_type::ERROR;
         }
+
+        MessageType mt;
+        int read_count = 0;
+        do {
+            clear_buffer(input_buffer);
+            can_read(std::chrono::milliseconds(100));
+            mt = codec.getResponseType(input_buffer);
+            if(++read_count >= 5) {
+                // RCLCPP_DEBUG(rclcpp::get_logger("READ"), "Heartbeat message was not found for five consequtive frames");
+                return hardware_interface::return_type::ERROR;
+            }
+        } while(mt != MessageType::HEARTBEAT);
+
+        const std::lock_guard<std::mutex> lock(read_mtx);
+
+        // Read Motor Position
+        current_position = codec.decode_position_response(input_buffer);
+        if(current_position < min_raw_position) {
+            min_raw_position = current_position;
+            // RCLCPP_DEBUG(rclcpp::get_logger("MIN_RAW_POSITION"), "min_raw_position: %f", min_raw_position);
+        }
     
+        a_pos[0] = current_position + pos_offset;
+        state_transmissions[0]->actuator_to_joint();
+        // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "a_pos[0]: %f", a_pos[0]);
+        // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "hw_states_[0]: %f", hw_states_[0]);
+
+        // Read Motor Current
+        current_current = codec.decode_current_response(input_buffer);// = codec.decode_current_response(current_response);
+        // RCLCPP_DEBUG(rclcpp::get_logger("READ"), "current*: %f", current_current);
+
+        // Read Diagnostic Message
+        error_signal_0 = codec.decode_error_0_response(input_buffer);
+        // RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
+        error_signal_1 = codec.decode_error_1_response(input_buffer);
+        // RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+
+        clear_buffer(input_buffer);
         return hardware_interface::return_type::OK;
     }
 
@@ -493,6 +489,7 @@ namespace keya_driver_hardware_interface
             throw std::runtime_error("CAN socket is not opened yet: write");
             return hardware_interface::return_type::ERROR;
         }
+        const std::lock_guard<std::mutex> lock(read_mtx);
 
         can_frame cmd_frame;
         // If mode is mismatched.
@@ -506,7 +503,6 @@ namespace keya_driver_hardware_interface
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CURRENT CHECK: %f, THRESHOLD: %f", current_current, CURRENT_THRESHOLD);
             cmd_frame = codec.encode_position_command_request(can_id_list[0], max_wheel_right);
-            const std::lock_guard<std::mutex> lock(read_mtx);
             
             static bool has_set_offset = false;
             if(!has_set_offset) {
