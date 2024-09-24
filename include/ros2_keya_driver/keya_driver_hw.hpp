@@ -115,8 +115,8 @@ namespace keya_driver_hardware_interface
         std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater;
 
         // Homing Service
-        void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+        // void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+        //                                 std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
         void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
@@ -124,18 +124,15 @@ namespace keya_driver_hardware_interface
         // mode switching
         void analog_mode_callback(const std::shared_ptr<std_msgs::msg::Bool> _mode);
 
-        double set_offset();
+        bool is_disabled();
 
-        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
+        // rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
 
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;
 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr analog_mode_subscriber;
         realtime_tools::RealtimeBuffer<std_msgs::msg::Bool> analog_mode;
-
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr center_subscriber;
         
-
         double current_position_unoffset;
         double current_current;
         ErrorSignal error_signal_0;

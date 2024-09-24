@@ -493,45 +493,41 @@ namespace keya_driver_hardware_interface
         can_frame cmd_frame;
         // If mode is mismatched.
         bool should_disable = analog_mode.readFromRT()->data;
-        static bool prev_should_disable = should_disable;
         if(homing_state == OperationState::DOING)
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CURRENT CHECK: %f, THRESHOLD: %f", current_current, CURRENT_THRESHOLD);
             cmd_frame = codec.encode_position_command_request(can_id_list[0], max_wheel_right);
             
-            static bool has_set_offset = false;
-            if(!has_set_offset) {
-                const std::lock_guard<std::mutex> lock(read_mtx);
-                if(std::fabs(current_current) > CURRENT_THRESHOLD || error_signal_1.OVRCURR)
-                {
-                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "THRESHOLD REACHED");
-                    cmd_frame = codec.encode_position_control_disable_request(can_id_list[0]);
-                    has_set_offset = true;
-                }
-            } else {
-                cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]);
+            const std::lock_guard<std::mutex> lock(read_mtx);
+            if(std::fabs(current_current) > CURRENT_THRESHOLD || error_signal_1.OVRCURR)
+            {
                 pos_offset = CENTER_TO_RIGHT_DIST - min_raw_position;
                 RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "POS_OFFSET: %f", pos_offset);
                 centering_state = OperationState::DOING;
                 homing_state = OperationState::DONE;
-                has_set_offset = false;
             }
         } else if(centering_state == OperationState::DOING)
         {
-            cmd_frame = codec.encode_position_command_request(can_id_list[0], -pos_offset);
-            if(std::fabs(a_pos[0]) < POSITION_TOLERANCE)
-            {
-                centering_state = OperationState::DONE;
+            const std::lock_guard<std::mutex> lock(read_mtx);
+            if(error_signal_1.OVRCURR) {
+                cmd_frame = codec.encode_position_control_disable_request(can_id_list[0]);
+            } else {
+                if(error_signal_1.DISABLE) {
+                    cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]);
+                } else {
+                    cmd_frame = codec.encode_position_command_request(can_id_list[0], -pos_offset);
+                    if(std::fabs(a_pos[0]) < POSITION_TOLERANCE)
+                    {
+                        centering_state = OperationState::DONE;
+                    }
+                }
             }
-        } else if (prev_should_disable != should_disable)
+        } else if (is_disabled() != should_disable)
         {
             cmd_frame = should_disable ? codec.encode_position_control_disable_request(can_id_list[0]) 
                                     : codec.encode_position_control_enable_request(can_id_list[0]);
-            prev_should_disable = should_disable;
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Should Disable: %d", should_disable);
         } else
         {
-            // double enc_pos = hw_commands_[0];
             command_transmissions[0]->joint_to_actuator();
             a_cmd_pos[0] -= pos_offset;
             cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0]);
@@ -631,6 +627,12 @@ namespace keya_driver_hardware_interface
     void KeyaDriverHW::analog_mode_callback(const std::shared_ptr<std_msgs::msg::Bool> _mode)
     {
         analog_mode.writeFromNonRT(*_mode);
+    }
+
+    bool KeyaDriverHW::is_disabled()
+    {
+        const std::lock_guard<std::mutex> lock(read_mtx);
+        return error_signal_1.DISABLE;
     }
 }
 
