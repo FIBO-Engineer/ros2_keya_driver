@@ -302,7 +302,7 @@ namespace keya_driver_hardware_interface
 
             centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
             
-            mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::modeswitch_callback, this, std::placeholders::_1));
+            analog_mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::analog_mode_callback, this, std::placeholders::_1));
             // center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
 
             rclcpp::spin(node);
@@ -628,13 +628,9 @@ namespace keya_driver_hardware_interface
         }
     }
 
-    void KeyaDriverHW::modeswitch_callback(const std_msgs::msg::Bool income_mode)
+    void KeyaDriverHW::analog_mode_callback(const std_msgs::msg::Bool income_mode)
     {
-        if(is_analog_mode != income_mode.data)
-        {
-            is_analog_mode = income_mode.data;
-            has_mode_changed = true;
-        }
+        analog_mode.
     }
 }
 

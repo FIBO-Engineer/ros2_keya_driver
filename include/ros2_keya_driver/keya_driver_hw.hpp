@@ -122,7 +122,7 @@ namespace keya_driver_hardware_interface
                                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
         
         // mode switching
-        void modeswitch_callback(const std_msgs::msg::Bool income_mode);
+        void analog_mode_callback(const std_msgs::msg::Bool income_mode);
 
         double set_offset();
 
@@ -130,8 +130,8 @@ namespace keya_driver_hardware_interface
 
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;
 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_subscriber;
-        realtime_tools::RealtimeBuffer<std::shared_ptr<std_msgs::msg::Bool>> mode_;
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr analog_mode_subscriber;
+        realtime_tools::RealtimeBuffer<std::shared_ptr<std_msgs::msg::Bool>> analog_mode;
 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr center_subscriber;
         
@@ -146,8 +146,6 @@ namespace keya_driver_hardware_interface
         double min_raw_position;
 
         double pos_offset = 0.0;
-        bool is_analog_mode;
-        bool has_mode_changed;
 
         enum OperationState: uint8_t {IDLE = 0, DONE = 1, DOING = 2, FAILED = 3};
 
