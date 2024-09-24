@@ -493,12 +493,13 @@ namespace keya_driver_hardware_interface
 
         can_frame cmd_frame;
         // If mode is mismatched.
-        bool _should_disable = analog_mode.readFromRT()->data;
-        if( (error_signal_1.DISABLE && !_should_disable) || 
-            (!error_signal_1.DISABLE && _should_disable))
+        bool should_disable = analog_mode.readFromRT()->data;
+        static bool prev_should_disable = should_disable;
+        if(prev_should_disable != should_disable)
         {
-            cmd_frame = _should_disable ? codec.encode_position_control_disable_request(can_id_list[0]) 
+            cmd_frame = should_disable ? codec.encode_position_control_disable_request(can_id_list[0]) 
                                     : codec.encode_position_control_enable_request(can_id_list[0]);
+            prev_should_disable = should_disable;
         } else if(homing_state == OperationState::DOING)
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CURRENT CHECK: %f, THRESHOLD: %f", current_current, CURRENT_THRESHOLD);
@@ -506,6 +507,7 @@ namespace keya_driver_hardware_interface
             
             static bool has_set_offset = false;
             if(!has_set_offset) {
+                const std::lock_guard<std::mutex> lock(read_mtx);
                 if(std::fabs(current_current) > CURRENT_THRESHOLD || error_signal_1.OVRCURR)
                 {
                     // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "THRESHOLD REACHED");
