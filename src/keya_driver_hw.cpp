@@ -454,13 +454,13 @@ namespace keya_driver_hardware_interface
             current_position = codec.decode_position_response(input_buffer);
             if(current_position < min_raw_position) {
                 min_raw_position = current_position;
-                RCLCPP_INFO(rclcpp::get_logger("MIN_RAW_POSITION"), "min_raw_position: %f", min_raw_position);
+                RCLCPP_DEBUG(rclcpp::get_logger("MIN_RAW_POSITION"), "min_raw_position: %f", min_raw_position);
             }
         
             a_pos[0] = current_position + pos_offset;
             state_transmissions[0]->actuator_to_joint();
-            RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "a_pos[0]: %f", a_pos[0]);
-            RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "hw_states_[0]: %f", hw_states_[0]);
+            // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "a_pos[0]: %f", a_pos[0]);
+            // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "hw_states_[0]: %f", hw_states_[0]);
 
             // Read Motor Current
             current_current = codec.decode_current_response(input_buffer);// = codec.decode_current_response(current_response);
