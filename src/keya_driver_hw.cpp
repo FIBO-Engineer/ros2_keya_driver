@@ -181,9 +181,6 @@ namespace keya_driver_hardware_interface
             command_transmissions.push_back(command_transmission);        
         }
 
-        hw_states_.resize(1);
-        hw_commands_.resize(1);
-
         return hardware_interface::CallbackReturn::SUCCESS;
     
     }
@@ -447,8 +444,8 @@ namespace keya_driver_hardware_interface
             clear_buffer(input_buffer);
             can_read(std::chrono::milliseconds(100));
             mt = codec.getResponseType(input_buffer);
-            if(++read_count >= 5) {
-                // RCLCPP_DEBUG(rclcpp::get_logger("READ"), "Heartbeat message was not found for five consequtive frames");
+            if(++read_count >= 10) {
+                RCLCPP_ERROR(rclcpp::get_logger("READ"), "Heartbeat message was not found for ten consequtive frames");
                 return hardware_interface::return_type::ERROR;
             }
         } while(mt != MessageType::HEARTBEAT);
@@ -495,40 +492,34 @@ namespace keya_driver_hardware_interface
         bool should_disable = analog_mode.readFromRT()->data;
         static bool prev_should_disable = should_disable;
         // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "should_disable:%d, prev_should_disable:%d", should_disable, prev_should_disable);
-        if(homing_state == OperationState::DOING)
+
+        const std::lock_guard<std::mutex> lock_read(read_mtx);
+        const std::lock_guard<std::mutex> lock_centering(centering_mtx);
+
+        if(error_signal_1.OVRCURR) {
+            cmd_frame = codec.encode_position_control_disable_request(can_id_list[0]);
+        } else if(error_signal_1.DISABLE) {
+            cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]); 
+        }else if(homing_state == OperationState::DOING)
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CURRENT CHECK: %f, THRESHOLD: %f", current_current, CURRENT_THRESHOLD);
             cmd_frame = codec.encode_position_command_request(can_id_list[0], max_wheel_right);
-            
-            const std::lock_guard<std::mutex> lock(read_mtx);
             if(std::fabs(current_current) > CURRENT_THRESHOLD || error_signal_1.OVRCURR)
             {
                 pos_offset = CENTER_TO_RIGHT_DIST - min_raw_position;
-                RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "POS_OFFSET: %f", pos_offset);
+                RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Setting offset to: %f", pos_offset);
                 centering_state = OperationState::DOING;
                 homing_state = OperationState::DONE;
             }
         } else if(centering_state == OperationState::DOING)
         {
-            const std::lock_guard<std::mutex> lock(read_mtx);
-            if(error_signal_1.OVRCURR) {
-                // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "1");
-                cmd_frame = codec.encode_position_control_disable_request(can_id_list[0]);
-            } else {
-                if(error_signal_1.DISABLE) {
-                    // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "2");
-                    cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]);
-                } else {
-                    // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "3");
-                    cmd_frame = codec.encode_position_command_request(can_id_list[0], -pos_offset);
-                    if(std::fabs(a_pos[0]) < POSITION_TOLERANCE)
-                    {
-                        // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "4");
-                        std::lock_guard<std::mutex> lock(centering_mtx);
-                        centering_state = OperationState::DONE;
-                        centering_cv.notify_one();
-                    }
-                }
+            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "3.5");
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], -pos_offset);
+            if(std::fabs(a_pos[0]) < POSITION_TOLERANCE)
+            {
+                // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "4");
+                centering_state = OperationState::DONE;
+                centering_cv.notify_one();
             }
         } else if (prev_should_disable != should_disable)
         {
@@ -538,7 +529,7 @@ namespace keya_driver_hardware_interface
             prev_should_disable = should_disable;
         } else
         {
-            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "6");
+            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Joint Pos: %f, Act Pos: %f", hw_commands_[0], a_cmd_pos[0]);
             command_transmissions[0]->joint_to_actuator();
             a_cmd_pos[0] -= pos_offset;
             cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0]);
