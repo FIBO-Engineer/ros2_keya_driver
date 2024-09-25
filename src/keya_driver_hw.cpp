@@ -65,6 +65,15 @@ namespace keya_driver_hardware_interface
                 return hardware_interface::CallbackReturn::ERROR;
             }
 
+            try {
+                max = std::stod(joint.command_interfaces[0].max);
+                min = std::stod(joint.command_interfaces[0].min);
+            } catch (const std::invalid_argument& e) {
+                RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"),
+                    "max or min in URDF command_interface tag is not a number[%s]", e.what());
+                return hardware_interface::CallbackReturn::ERROR;
+            }
+            
             if (joint.state_interfaces.size() != 1)
             {
                 RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"),
@@ -532,7 +541,7 @@ namespace keya_driver_hardware_interface
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Joint Pos: %f, Act Pos: %f", hw_commands_[0], a_cmd_pos[0]);
             command_transmissions[0]->joint_to_actuator();
             a_cmd_pos[0] -= pos_offset;
-            cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0]);
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], std::clamp(a_cmd_pos[0], min, max));
         }
         can_write(cmd_frame, std::chrono::milliseconds(100));
         

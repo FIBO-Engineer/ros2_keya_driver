@@ -149,6 +149,8 @@ namespace keya_driver_hardware_interface
         std::mutex centering_mtx;
         std::condition_variable centering_cv;
         
+        double min;
+        double max;
 
         static constexpr double max_wheel_right = -25.0;
         static constexpr double max_wheel_left = 25.0;
