@@ -156,7 +156,7 @@ namespace keya_driver_hardware_interface
                 transmission_interface::JointHandle joint_handle_pos(transmission_info.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_states_[i]);
                 state_joint_handles.push_back(joint_handle_pos);
 
-                transmission_interface::JointHandle joint_handle_cmd_pos(transmission_info.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_commands_[i]);
+                transmission_interface::JointHandle joint_handle_cmd_pos(transmission_info.joints[i].name, hardware_interface::HW_IF_POSITION, &clamped_cmd);
                 command_joint_handles.push_back(joint_handle_cmd_pos);
             }
 
@@ -169,7 +169,7 @@ namespace keya_driver_hardware_interface
                 state_actuator_handles.push_back(actuator_handle_pos);
 
                 transmission_interface::ActuatorHandle actuator_handle_cmd_pos(
-                    transmission_info.actuators[i].name, hardware_interface::HW_IF_POSITION, &clamped_cmd
+                    transmission_info.actuators[i].name, hardware_interface::HW_IF_POSITION, &a_cmd_pos[i]
                 );
                 command_actuator_handles.push_back(actuator_handle_cmd_pos);
             }
@@ -538,9 +538,10 @@ namespace keya_driver_hardware_interface
             prev_should_disable = should_disable;
         } else
         {
-            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Joint Pos: %f, Act Pos: %f", hw_commands_[0], a_cmd_pos[0]);
-            clamped_cmd = std::clamp(hw_commands_[0], min, max)
+            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "clamp_cmd: %f, hw_commands_[0]: %f, min: %f, max: %f", clamped_cmd, hw_commands_[0], min, max);
+            clamped_cmd = std::clamp(hw_commands_[0], min, max);
             command_transmissions[0]->joint_to_actuator();
+            // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Clamped_joint Pos: %f, Act Pos: %f", clamped_cmd, a_cmd_pos[0]);
             cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
         }
         can_write(cmd_frame, std::chrono::milliseconds(100));
