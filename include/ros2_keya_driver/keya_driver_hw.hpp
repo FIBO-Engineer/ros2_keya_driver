@@ -90,6 +90,7 @@ namespace keya_driver_hardware_interface
         // std::vector<canid_t> can_id_list;
 
         std::vector<double> hw_commands_;
+        double clamped_cmd;
         std::vector<double> hw_states_;
 
         std::vector<std::shared_ptr<transmission_interface::Transmission>> state_transmissions;

@@ -169,7 +169,7 @@ namespace keya_driver_hardware_interface
                 state_actuator_handles.push_back(actuator_handle_pos);
 
                 transmission_interface::ActuatorHandle actuator_handle_cmd_pos(
-                    transmission_info.actuators[i].name, hardware_interface::HW_IF_POSITION, &a_cmd_pos[i]
+                    transmission_info.actuators[i].name, hardware_interface::HW_IF_POSITION, &clamped_cmd
                 );
                 command_actuator_handles.push_back(actuator_handle_cmd_pos);
             }
@@ -539,9 +539,9 @@ namespace keya_driver_hardware_interface
         } else
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Joint Pos: %f, Act Pos: %f", hw_commands_[0], a_cmd_pos[0]);
+            clamped_cmd = std::clamp(hw_commands_[0], min, max)
             command_transmissions[0]->joint_to_actuator();
-            a_cmd_pos[0] -= pos_offset;
-            cmd_frame = codec.encode_position_command_request(can_id_list[0], std::clamp(a_cmd_pos[0], min, max));
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
         }
         can_write(cmd_frame, std::chrono::milliseconds(100));
         
