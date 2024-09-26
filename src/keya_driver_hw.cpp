@@ -108,6 +108,7 @@ namespace keya_driver_hardware_interface
                 return CallbackReturn::ERROR;
             }
 
+            pos_offset.store(0.0);
             pos_idx.push_back(pos_if_idx);
 
         }
@@ -307,6 +308,7 @@ namespace keya_driver_hardware_interface
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_1);
 
             centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
+            manual_homing_service = node->create_service<std_srvs::srv::Trigger>("manual_homing", std::bind(&KeyaDriverHW::manual_homing_callback, this, std::placeholders::_1, std::placeholders::_2));
             
             analog_mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::analog_mode_callback, this, std::placeholders::_1));
             // center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
@@ -469,7 +471,7 @@ namespace keya_driver_hardware_interface
             // RCLCPP_DEBUG(rclcpp::get_logger("MIN_RAW_POSITION"), "min_raw_position: %f", min_raw_position);
         }
     
-        a_pos[0] = current_position_unoffset + pos_offset;
+        a_pos[0] = current_position_unoffset + pos_offset.load();
         state_transmissions[0]->actuator_to_joint();
         // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "a_pos[0]: %f", a_pos[0]);
         // RCLCPP_INFO(rclcpp::get_logger("STATE_TRANSMISSION"), "hw_states_[0]: %f", hw_states_[0]);
@@ -516,15 +518,15 @@ namespace keya_driver_hardware_interface
             cmd_frame = codec.encode_position_command_request(can_id_list[0], max_wheel_right);
             if(std::fabs(current_current) > CURRENT_THRESHOLD || error_signal_1.OVRCURR)
             {
-                pos_offset = CENTER_TO_RIGHT_DIST - min_raw_position;
-                RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Setting offset to: %f", pos_offset);
+                pos_offset.store(CENTER_TO_RIGHT_DIST - min_raw_position);
+                RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Setting offset to: %f", pos_offset.load());
                 centering_state = OperationState::DOING;
                 homing_state = OperationState::DONE;
             }
         } else if(centering_state == OperationState::DOING)
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "3.5");
-            cmd_frame = codec.encode_position_command_request(can_id_list[0], -pos_offset);
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], -pos_offset.load());
             if(std::fabs(a_pos[0]) < POSITION_TOLERANCE)
             {
                 // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "4");
@@ -543,7 +545,7 @@ namespace keya_driver_hardware_interface
             clamped_cmd = std::clamp(hw_commands_[0], min, max);
             command_transmissions[0]->joint_to_actuator();
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Clamped_joint Pos: %f, Act Pos: %f", clamped_cmd, a_cmd_pos[0]);
-            cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset);
+            cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset.load());
         }
         can_write(cmd_frame, std::chrono::milliseconds(100));
         
@@ -601,6 +603,19 @@ namespace keya_driver_hardware_interface
             stream->close();
             io_context.run();
         }
+    }
+
+    void KeyaDriverHW::manual_homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+                                                std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+    {
+        response->success = true;
+        response->message = "Success";
+
+        can_frame input_buffer;
+        double current_manual_pos = codec.decode_position_response(input_buffer);
+        // read and save current position 
+        pos_offset.store(current_manual_pos);
+
     }
 
     void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,

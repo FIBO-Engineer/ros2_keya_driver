@@ -124,10 +124,13 @@ namespace keya_driver_hardware_interface
         
         // mode switching
         void analog_mode_callback(const std::shared_ptr<std_msgs::msg::Bool> _mode);
+        void manual_homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                                            std::shared_ptr<std_srvs::srv::Trigger::Response> reponse);
 
         // rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
 
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr manual_homing_service;
 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr analog_mode_subscriber;
         realtime_tools::RealtimeBuffer<std_msgs::msg::Bool> analog_mode;
@@ -140,7 +143,7 @@ namespace keya_driver_hardware_interface
 
         double min_raw_position;
 
-        double pos_offset = 0.0;
+        std::atomic<double> pos_offset;
 
         enum OperationState: uint8_t {IDLE = 0, DONE = 1, DOING = 2, FAILED = 3};
 
