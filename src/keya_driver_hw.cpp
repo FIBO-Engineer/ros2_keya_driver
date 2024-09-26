@@ -455,7 +455,8 @@ namespace keya_driver_hardware_interface
             mt = codec.getResponseType(input_buffer);
             if(++read_count >= 10) {
                 RCLCPP_ERROR(rclcpp::get_logger("READ"), "Heartbeat message was not found for ten consequtive frames");
-                return hardware_interface::return_type::ERROR;
+                break;
+                // return hardware_interface::return_type::ERROR;
             }
         } while(mt != MessageType::HEARTBEAT);
 
