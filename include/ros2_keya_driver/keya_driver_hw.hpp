@@ -161,7 +161,7 @@ namespace keya_driver_hardware_interface
 
         static constexpr double CENTER_TO_RIGHT_DIST = -10.0;  //0.512 * 22.5
         static constexpr double CENTER_TO_LEFT_DIST = 11.20; //0.498 * 22.5
-        static constexpr double CURRENT_THRESHOLD = 18.0;
+        static constexpr double CURRENT_THRESHOLD = 16.0;
         static constexpr double POSITION_TOLERANCE = 0.002; //0.5;
     };
 }

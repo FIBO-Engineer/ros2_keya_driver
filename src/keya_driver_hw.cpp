@@ -484,7 +484,7 @@ namespace keya_driver_hardware_interface
         error_signal_0 = codec.decode_error_0_response(input_buffer);
         // RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
         error_signal_1 = codec.decode_error_1_response(input_buffer);
-        // RCLCPP_DEBUG(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+        RCLCPP_INFO(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
 
         clear_buffer(input_buffer);
         return hardware_interface::return_type::OK;
@@ -510,8 +510,10 @@ namespace keya_driver_hardware_interface
 
         if(error_signal_1.OVRCURR) {
             cmd_frame = codec.encode_position_control_disable_request(can_id_list[0]);
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Overcurrent! Disabling");
         } else if(error_signal_1.DISABLE && !should_disable) {
             cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]); 
+            RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Disabled but shouldn't disable, Enabling");
         }else if(homing_state == OperationState::DOING)
         {
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CURRENT CHECK: %f, THRESHOLD: %f", current_current, CURRENT_THRESHOLD);
