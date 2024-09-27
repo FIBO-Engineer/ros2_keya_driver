@@ -489,7 +489,7 @@ namespace keya_driver_hardware_interface
         // for (int i = 0; i < input_buffer.can_dlc; ++i) {
         //     std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(input_buffer.data[i]) << " ";
         // }
-        RCLCPP_INFO(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
+        // RCLCPP_INFO(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
 
         clear_buffer(input_buffer);
         return hardware_interface::return_type::OK;
