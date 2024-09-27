@@ -629,9 +629,9 @@ namespace keya_driver_hardware_interface
         // double current_manual_pos = codec.decode_position_response(input_buffer);
         // read and save current position 
         std::lock_guard<std::mutex> lock(read_mtx);
-        RCLCPP_INFO(rclcpp::get_logger("MANUAL HOMING"), "get current unoffset position: %f", current_position_unoffset);
-        pos_offset.store(current_position_unoffset);
-        RCLCPP_INFO(rclcpp::get_logger("MANUAL HOMING"), "pos_offset: %f", pos_offset);
+        // RCLCPP_INFO(rclcpp::get_logger("MANUAL HOMING"), "get current unoffset position: %f", current_position_unoffset);
+        pos_offset.store(-current_position_unoffset);
+        // RCLCPP_INFO(rclcpp::get_logger("MANUAL HOMING"), "pos_offset: %f", pos_offset);
 
     }
 
