@@ -625,10 +625,11 @@ namespace keya_driver_hardware_interface
         response->success = true;
         response->message = "Success";
 
-        can_frame input_buffer;
-        double current_manual_pos = codec.decode_position_response(input_buffer);
+        // can_frame input_buffer;
+        // double current_manual_pos = codec.decode_position_response(input_buffer);
         // read and save current position 
-        pos_offset.store(current_manual_pos);
+        std::lock_guard<std::mutex> lock(read_mtx);
+        pos_offset.store(current_position_unoffset);
 
     }
 
