@@ -88,6 +88,7 @@ namespace keya_driver_hardware_interface
         std::string device_id = "can0";
         std::vector<canid_t> can_id_list = {0x86000001};
         // std::vector<canid_t> can_id_list;
+        int natsock;
 
         std::vector<double> hw_commands_;
         double clamped_cmd;
@@ -159,9 +160,9 @@ namespace keya_driver_hardware_interface
         static constexpr double max_wheel_right = -25.0;
         static constexpr double max_wheel_left = 25.0;
 
-        static constexpr double CENTER_TO_RIGHT_DIST = -10.0;  //0.512 * 22.5
+        static constexpr double CENTER_TO_RIGHT_DIST = -10.00;  //0.512 * 22.5
         static constexpr double CENTER_TO_LEFT_DIST = 11.20; //0.498 * 22.5
-        static constexpr double CURRENT_THRESHOLD = 16.0;
+        static constexpr double CURRENT_THRESHOLD = 18.0;
         static constexpr double POSITION_TOLERANCE = 0.002; //0.5;
     };
 }

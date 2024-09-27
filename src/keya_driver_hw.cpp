@@ -262,7 +262,7 @@ namespace keya_driver_hardware_interface
         sockaddr_can addr;
         ifreq ifr;
 
-        int natsock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+        natsock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
 
         strcpy(ifr.ifr_name, device_id.c_str());
         ioctl(natsock, SIOCGIFINDEX, &ifr);
@@ -484,6 +484,11 @@ namespace keya_driver_hardware_interface
         error_signal_0 = codec.decode_error_0_response(input_buffer);
         // RCLCPP_DEBUG(rclcpp::get_logger("Error0_Debug"), "Error0: %s", error_signal_0.getErrorMessage().c_str());
         error_signal_1 = codec.decode_error_1_response(input_buffer);
+        // std::cout << "[CAN_ID_POSITION_LOGGER]: " << std::hex << input_buffer.can_id << std::dec << std::endl;
+        // // std::cout << "[INPUT_BUFFER_DLC]: " << std::hex << input_buffer.data[0] << std::dec << std::endl;
+        // for (int i = 0; i < input_buffer.can_dlc; ++i) {
+        //     std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(input_buffer.data[i]) << " ";
+        // }
         RCLCPP_INFO(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
 
         clear_buffer(input_buffer);
@@ -556,6 +561,13 @@ namespace keya_driver_hardware_interface
 
     void KeyaDriverHW::can_read(std::chrono::steady_clock::duration timeout)
     {
+        // Flush alls
+        struct can_frame frame;
+        int nbytes;
+        do {
+            nbytes = ::read(natsock, &frame, sizeof(frame));
+        } while (nbytes > 0);
+
         boost::system::error_code error;
         boost::asio::async_read(*stream,
                                 boost::asio::buffer(&input_buffer, sizeof(input_buffer)),
