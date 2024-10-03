@@ -7,6 +7,9 @@
                 <plugin>keya_driver_hardware_interface/KeyaDriverHW</plugin>
                 <!-- <param name="device_id">can0</param> -->
                 <!-- <param name="can_id_list">{1}</param> -->
+                <!-- homing configuration options -->
+                <!-- choose either "auto" or "manual" only -->
+                <param name="homing_mode">auto</param>
             </hardware>
 
             <joint name="${prefix}_joint">

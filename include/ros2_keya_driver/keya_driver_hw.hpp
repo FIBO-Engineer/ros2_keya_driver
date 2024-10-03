@@ -157,6 +157,8 @@ namespace keya_driver_hardware_interface
         double min;
         double max;
 
+        std::string homing_mode;
+
         static constexpr double max_wheel_right = -25.0;
         static constexpr double max_wheel_left = 25.0;
 

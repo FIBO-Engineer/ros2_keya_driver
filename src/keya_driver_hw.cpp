@@ -39,6 +39,14 @@ namespace keya_driver_hardware_interface
         hw_commands_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
         hw_states_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
 
+        // get homing mode from parameter
+        homing_mode = info_.hardware_parameters["homing_mode"];
+        if(homing_mode != "auto" || homing_mode != "manual")
+        {
+            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Homing mode is not recognized.");
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+
         if(info_.joints.size() != 1)
         {
             RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"),"This program supports only one actuator");
@@ -308,7 +316,7 @@ namespace keya_driver_hardware_interface
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_1);
 
             centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
-            manual_homing_service = node->create_service<std_srvs::srv::Trigger>("manual_homing", std::bind(&KeyaDriverHW::manual_homing_callback, this, std::placeholders::_1, std::placeholders::_2));
+            manual_homing_service = node->create_service<std_srvs::srv::Trigger>("set_zero_position", std::bind(&KeyaDriverHW::manual_homing_callback, this, std::placeholders::_1, std::placeholders::_2));
             
             analog_mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::analog_mode_callback, this, std::placeholders::_1));
             // center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
@@ -390,9 +398,17 @@ namespace keya_driver_hardware_interface
 
         /* -------------------------- Homing -----------------------------*/
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Homing Initialized...");
+        if(homing_mode == "auto")
+        {
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Auto Homing Mode Selected. Homing Initialized...");
+            homing_state = OperationState::DOING;
+        }
+        else if(homing_mode == "manual")
+        {
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Manual Homing Mode Selected.");
+            homing_state = OperationState::IDLE;
+        }
         
-        homing_state = OperationState::DOING;
 
         /*--------------------------End Homing----------------------------*/
 
