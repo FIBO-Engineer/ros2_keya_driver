@@ -41,7 +41,8 @@ namespace keya_driver_hardware_interface
 
         // get homing mode from parameter
         homing_mode = info_.hardware_parameters["homing_mode"];
-        if(homing_mode != "auto" || homing_mode != "manual")
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Homing mode: %s", homing_mode.c_str());
+        if(homing_mode != "auto" && homing_mode != "manual")
         {
             RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Homing mode is not recognized.");
             return hardware_interface::CallbackReturn::ERROR;
