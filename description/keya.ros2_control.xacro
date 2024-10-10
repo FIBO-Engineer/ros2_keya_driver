@@ -9,7 +9,7 @@
                 <!-- <param name="can_id_list">{1}</param> -->
                 <!-- homing configuration options -->
                 <!-- choose either "auto" or "manual" only -->
-                <param name="homing_mode">auto</param>
+                <param name="homing_mode">manual</param>
             </hardware>
 
             <joint name="${prefix}_joint">
