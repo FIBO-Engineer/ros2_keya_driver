@@ -276,8 +276,8 @@ namespace keya_driver_hardware_interface
         addr.can_ifindex = ifr.ifr_ifindex;
         if (bind(natsock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
         {
-            perror("Error while binding CAN socket");
-            throw std::runtime_error("Error while binding CAN socket");
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Error while binding CAN socket");
+            return false;
         }
 
         // Set up CAN filters
@@ -469,11 +469,13 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Start READING");
         if (!stream->is_open())
         {
             // RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
             // throw std::runtime_error("CAN socket is not opened yet: read");
             // return hardware_interface::return_type::ERROR;
+            RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "CAN connection not found (read).");
             static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
             if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
             {
@@ -491,6 +493,7 @@ namespace keya_driver_hardware_interface
             return hardware_interface::return_type::OK;
         }
 
+        RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In READ");
         MessageType mt;
         int read_count = 0;
         do {
@@ -554,8 +557,10 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Start WRITING");
         if (!stream->is_open())
         {
+            RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "CAN connection not found (write).");
             static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
             if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
             {
@@ -573,6 +578,7 @@ namespace keya_driver_hardware_interface
             return hardware_interface::return_type::OK;
         }
 
+        RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In WRITE");
         can_frame cmd_frame;
         // If mode is mismatched.
         bool should_disable = analog_mode.readFromRT()->data;
@@ -623,7 +629,15 @@ namespace keya_driver_hardware_interface
             // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Clamped_joint Pos: %f, Act Pos: %f", clamped_cmd, a_cmd_pos[0]);
             cmd_frame = codec.encode_position_command_request(can_id_list[0], a_cmd_pos[0] - pos_offset.load());
         }
-        can_write(cmd_frame, std::chrono::milliseconds(100));
+
+        try
+        {
+            can_write(cmd_frame, std::chrono::milliseconds(100));
+        }
+        catch(const std::runtime_error &e)
+        {
+            std::cerr << e.what() << '\n';
+        }
         
         return hardware_interface::return_type::OK;
     }    
