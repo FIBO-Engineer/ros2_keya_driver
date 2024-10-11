@@ -481,6 +481,7 @@ namespace keya_driver_hardware_interface
                 if(can_connect())
                 {
                     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
+                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Checking: read");
                 }
                 else
                 {
@@ -562,6 +563,7 @@ namespace keya_driver_hardware_interface
                 if(can_connect())
                 {
                     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
+                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Checking: write");
                 }
                 else
                 {
