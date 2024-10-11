@@ -128,6 +128,8 @@ namespace keya_driver_hardware_interface
         void manual_homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                                             std::shared_ptr<std_srvs::srv::Trigger::Response> reponse);
 
+        bool can_connect();
+
         // rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
 
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;

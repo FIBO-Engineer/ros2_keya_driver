@@ -262,12 +262,8 @@ namespace keya_driver_hardware_interface
         
     }
 
-    hardware_interface::CallbackReturn KeyaDriverHW::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
+    bool KeyaDriverHW::can_connect()
     {
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuring...");
-
-        // device_id = "can0";
-
         sockaddr_can addr;
         ifreq ifr;
 
@@ -296,10 +292,24 @@ namespace keya_driver_hardware_interface
 
         stream->assign(natsock);
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN socket connected");
+        return true;
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuration successful");
+    }
 
+    hardware_interface::CallbackReturn KeyaDriverHW::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
+    {
+        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuring...");
+
+        // device_id = "can0";
+        if(can_connect())
+        {
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN socket connected");
+        }
+        else
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket not connected");
+        }
+        
         // Always reset values when configuring hardware
         for (uint i = 0; i < hw_states_.size(); i++)
         {
@@ -461,9 +471,22 @@ namespace keya_driver_hardware_interface
     {
         if (!stream->is_open())
         {
-            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
-            throw std::runtime_error("CAN socket is not opened yet: read");
+            // RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
+            // throw std::runtime_error("CAN socket is not opened yet: read");
             // return hardware_interface::return_type::ERROR;
+            static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
+            if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
+            {
+                start_disconnect_timer = node->get_clock()->now();
+                if(can_connect())
+                {
+                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
+                }
+                else
+                {
+                    RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot reconnect CAN...");
+                }
+            }
             return hardware_interface::return_type::OK;
         }
 
@@ -532,9 +555,19 @@ namespace keya_driver_hardware_interface
     {
         if (!stream->is_open())
         {
-            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"CAN socket is not opened yet: write");
-            throw std::runtime_error("CAN socket is not opened yet: write");
-            // return hardware_interface::return_type::ERROR;
+            static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
+            if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
+            {
+                start_disconnect_timer = node->get_clock()->now();
+                if(can_connect())
+                {
+                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
+                }
+                else
+                {
+                    RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot reconnect CAN...");
+                }
+            }
             return hardware_interface::return_type::OK;
         }
 
