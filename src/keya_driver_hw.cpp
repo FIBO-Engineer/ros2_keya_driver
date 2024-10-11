@@ -292,7 +292,7 @@ namespace keya_driver_hardware_interface
 
         stream->assign(natsock);
 
-        return true;
+        return stream->is_open();
 
     }
 
