@@ -463,7 +463,8 @@ namespace keya_driver_hardware_interface
         {
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
             throw std::runtime_error("CAN socket is not opened yet: read");
-            return hardware_interface::return_type::ERROR;
+            // return hardware_interface::return_type::ERROR;
+            return hardware_interface::return_type::OK;
         }
 
         MessageType mt;
@@ -533,7 +534,8 @@ namespace keya_driver_hardware_interface
         {
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"CAN socket is not opened yet: write");
             throw std::runtime_error("CAN socket is not opened yet: write");
-            return hardware_interface::return_type::ERROR;
+            // return hardware_interface::return_type::ERROR;
+            return hardware_interface::return_type::OK;
         }
 
         can_frame cmd_frame;
