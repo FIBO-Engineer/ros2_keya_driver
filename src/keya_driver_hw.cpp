@@ -470,13 +470,28 @@ namespace keya_driver_hardware_interface
         int read_count = 0;
         do {
             clear_buffer(input_buffer);
-            can_read(std::chrono::milliseconds(100));
-            mt = codec.getResponseType(input_buffer);
-            if(++read_count >= 10) {
-                RCLCPP_ERROR(rclcpp::get_logger("READ"), "Heartbeat message was not found for ten consequtive frames");
-                break;
-                // return hardware_interface::return_type::ERROR;
+            try
+            {
+                can_read(std::chrono::milliseconds(100));
+                mt = codec.getResponseType(input_buffer);
+                if(++read_count >= 10) {
+                    RCLCPP_ERROR(rclcpp::get_logger("READ"), "Heartbeat message was not found for ten consequtive frames");
+                    break;
+                }
             }
+            catch(const std::runtime_error &e)
+            {
+                std::cerr << e.what() << '\n';
+                break;
+            }
+            
+            // can_read(std::chrono::milliseconds(100));
+            // mt = codec.getResponseType(input_buffer);
+            // if(++read_count >= 10) {
+            //     RCLCPP_ERROR(rclcpp::get_logger("READ"), "Heartbeat message was not found for ten consequtive frames");
+            //     break;
+            //     // return hardware_interface::return_type::ERROR;
+            // }
         } while(mt != MessageType::HEARTBEAT);
 
         const std::lock_guard<std::mutex> lock(read_mtx);
@@ -596,7 +611,9 @@ namespace keya_driver_hardware_interface
         run(timeout);
         if (error)
         {
-            throw std::system_error(error);
+            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Steering motor power lost.");
+            throw std::runtime_error("Power Lost");
+            // throw std::system_error(error);
         }
     }
         
@@ -611,7 +628,9 @@ namespace keya_driver_hardware_interface
         run(timeout);
         if (error)
         {
-            throw std::system_error(error);
+            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Steering motor power lost.");
+            throw std::runtime_error("Power Lost");
+            // throw std::system_error(error);
         }
     }
 
