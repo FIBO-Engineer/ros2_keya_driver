@@ -701,7 +701,7 @@ namespace keya_driver_hardware_interface
         if (!io_context.stopped())
         {
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Operation Timeout, probably due to no data return from the device.");
-            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Attempt to reconnect...");
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Awaiting Reconnection...");
             // stream->close();
             io_context.run();
         }
