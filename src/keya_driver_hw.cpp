@@ -469,7 +469,7 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Start READING");
+        // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Start READING");
         if (!stream->is_open())
         {
             // RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
@@ -494,7 +494,7 @@ namespace keya_driver_hardware_interface
             return hardware_interface::return_type::OK;
         }
 
-        RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In READ");
+        // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In READ");
         MessageType mt;
         int read_count = 0;
         do {
@@ -558,7 +558,7 @@ namespace keya_driver_hardware_interface
 
     hardware_interface::return_type KeyaDriverHW::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Start WRITING");
+        // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Start WRITING");
         if (!stream->is_open())
         {
             static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
@@ -578,7 +578,7 @@ namespace keya_driver_hardware_interface
             return hardware_interface::return_type::OK;
         }
 
-        RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In WRITE");
+        // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In WRITE");
         can_frame cmd_frame;
         // If mode is mismatched.
         bool should_disable = analog_mode.readFromRT()->data;
