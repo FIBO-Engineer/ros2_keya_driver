@@ -475,17 +475,18 @@ namespace keya_driver_hardware_interface
             // RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
             // throw std::runtime_error("CAN socket is not opened yet: read");
             // return hardware_interface::return_type::ERROR;
-            RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "CAN connection not found (read).");
+
+            std::cout << "CAN connection status: " << can_connect() << std::endl;
             static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
             if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
             {
                 start_disconnect_timer = node->get_clock()->now();
-                if(can_connect())
+                if(can_connect() && input_buffer.can_id == 0x07000001)
                 {
                     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
                     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Checking: read");
                 }
-                else
+                else if( input_buffer.can_id == 0x00000000 )
                 {
                     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot reconnect CAN...");
                 }
@@ -560,17 +561,16 @@ namespace keya_driver_hardware_interface
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Start WRITING");
         if (!stream->is_open())
         {
-            RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "CAN connection not found (write).");
             static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
             if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
             {
                 start_disconnect_timer = node->get_clock()->now();
-                if(can_connect())
+                if(can_connect() && input_buffer.can_id == 0x07000001)
                 {
                     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
                     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Checking: write");
                 }
-                else
+                else if( input_buffer.can_id == 0x00000000 )
                 {
                     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot reconnect CAN...");
                 }
@@ -662,7 +662,7 @@ namespace keya_driver_hardware_interface
         run(timeout);
         if (error)
         {
-            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Steering motor power lost.");
+            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Steering motor power lost: can_read");
             throw std::runtime_error("Power Lost");
             // throw std::system_error(error);
         }
@@ -679,7 +679,7 @@ namespace keya_driver_hardware_interface
         run(timeout);
         if (error)
         {
-            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Steering motor power lost.");
+            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Steering motor power lost: can_write");
             throw std::runtime_error("Power Lost");
             // throw std::system_error(error);
         }
@@ -701,7 +701,8 @@ namespace keya_driver_hardware_interface
         if (!io_context.stopped())
         {
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Operation Timeout, probably due to no data return from the device.");
-            stream->close();
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Attempt to reconnect...");
+            // stream->close();
             io_context.run();
         }
     }

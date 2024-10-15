@@ -166,6 +166,11 @@ namespace keya_driver_hardware_interface
             return curr_position_rad;
 
         }
+        else if( input_buffer.can_id == 0x00000000)
+        {
+            RCLCPP_FATAL(rclcpp::get_logger("CAN_ID_POSITION_LOGGER"), "Motor disconnected");
+            return 0.0;
+        }
         else
         {
             std::cout << "[CAN_ID_POSITION_LOGGER]: " << std::hex << input_buffer.can_id << std::dec << std::endl;
@@ -173,6 +178,7 @@ namespace keya_driver_hardware_interface
             for (int i = 0; i < input_buffer.can_dlc; ++i) {
                 std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(input_buffer.data[i]) << " ";
             }
+            std::cout << "" << std::endl;
             RCLCPP_ERROR(rclcpp::get_logger("position_logger"), "Cannot read position.");
             return 0.0;
         }
