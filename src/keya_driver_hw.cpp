@@ -521,6 +521,7 @@ namespace keya_driver_hardware_interface
                 read_error_printed = true;
                 RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Unable to read, probably from emergency");
             }
+            return hardware_interface::return_type::OK;
         } else {
             if(read_error_printed) {
                 read_error_printed = false;
