@@ -686,16 +686,17 @@ namespace keya_driver_hardware_interface
                                      error = res_error;
                                  });
         run(timeout);
-        static bool error_printed = false;
+        // static bool error_printed = false;
+        // Unlikely to get error
         if (error)
         {   
             RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Unable to perform can_write");
-            error_printed = true;
+            // error_printed = true;
             // throw std::runtime_error("Unable to perform can_write");
             throw std::system_error(error);
-        } else {
-            error_printed = false;
-        }
+        } //else {
+        //     error_printed = false;
+        // }
     }
 
     void KeyaDriverHW::clear_buffer(can_frame &input_buffer)
