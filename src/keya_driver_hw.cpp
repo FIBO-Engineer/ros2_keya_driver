@@ -399,9 +399,9 @@ namespace keya_driver_hardware_interface
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             can_frame position_control_enable_frame = codec.encode_position_control_enable_request(can_id_list[i]);           
-            can_write(position_control_enable_frame, std::chrono::milliseconds(100));
+            can_write(position_control_enable_frame, std::chrono::milliseconds(50));
             // RCLCPP_INFO(rclcpp::get_logger("READ CAN"),"READ CAN.");
-            can_read(std::chrono::milliseconds(100));
+            can_read(std::chrono::milliseconds(50));
             clear_buffer(input_buffer);
         }
 
@@ -437,8 +437,8 @@ namespace keya_driver_hardware_interface
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
             can_frame position_control_disable_frame = codec.encode_position_control_disable_request(can_id_list[i]);
-            can_write(position_control_disable_frame, std::chrono::milliseconds(100));
-            can_read(std::chrono::milliseconds(100));
+            can_write(position_control_disable_frame, std::chrono::milliseconds(50));
+            can_read(std::chrono::milliseconds(50));
             res.push_back(codec.decode_command_response(input_buffer));
             clear_buffer(input_buffer);
         }
@@ -470,58 +470,63 @@ namespace keya_driver_hardware_interface
     hardware_interface::return_type KeyaDriverHW::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
         // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Start READING");
-        if (!stream->is_open())
-        {
-            // RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
-            // throw std::runtime_error("CAN socket is not opened yet: read");
-            // return hardware_interface::return_type::ERROR;
+        // if (!stream->is_open())
+        // {
+        //     // RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket is not opened yet: read");
+        //     // throw std::runtime_error("CAN socket is not opened yet: read");
+        //     // return hardware_interface::return_type::ERROR;
 
-            std::cout << "CAN connection status: " << can_connect() << std::endl;
-            static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
-            if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
-            {
-                start_disconnect_timer = node->get_clock()->now();
-                if(can_connect() && input_buffer.can_id == 0x07000001)
-                {
-                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
-                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Checking: read");
-                }
-                else if( input_buffer.can_id == 0x00000000 )
-                {
-                    RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot reconnect CAN...");
-                }
-            }
-            return hardware_interface::return_type::OK;
-        }
+        //     std::cout << "CAN connection status: " << can_connect() << std::endl;
+        //     static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
+        //     if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
+        //     {
+        //         start_disconnect_timer = node->get_clock()->now();
+        //         if(can_connect() && input_buffer.can_id == 0x07000001)
+        //         {
+        //             RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
+        //             RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Checking: read");
+        //         }
+        //         else if( input_buffer.can_id == 0x00000000 )
+        //         {
+        //             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot reconnect CAN...");
+        //         }
+        //     }
+        //     return hardware_interface::return_type::OK;
+        // }
 
         // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In READ");
         MessageType mt;
         int read_count = 0;
-        do {
+        bool read_error = true;
+        
+        while(read_count++ < 4) {
             clear_buffer(input_buffer);
             try
             {
-                can_read(std::chrono::milliseconds(100));
+                can_read(std::chrono::milliseconds(50));
                 mt = codec.getResponseType(input_buffer);
-                if(++read_count >= 10) {
-                    RCLCPP_ERROR(rclcpp::get_logger("READ"), "Heartbeat message was not found for ten consequtive frames");
+                if(mt == MessageType::HEARTBEAT){
+                    read_error = false;
                     break;
                 }
-            }
-            catch(const std::runtime_error &e)
+            } catch(const std::system_error &e)
             {
-                std::cerr << e.what() << '\n';
+                // Probably communication error
                 break;
             }
-            
-            // can_read(std::chrono::milliseconds(100));
-            // mt = codec.getResponseType(input_buffer);
-            // if(++read_count >= 10) {
-            //     RCLCPP_ERROR(rclcpp::get_logger("READ"), "Heartbeat message was not found for ten consequtive frames");
-            //     break;
-            //     // return hardware_interface::return_type::ERROR;
-            // }
-        } while(mt != MessageType::HEARTBEAT);
+        }
+        static bool read_error_printed = false;
+        if(read_error) {
+            if(!read_error_printed) {
+                read_error_printed = true;
+                RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Unable to read, probably from emergency");
+            }
+        } else {
+            if(read_error_printed) {
+                read_error_printed = false;
+                RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Operational, emergency might be released");
+            }
+        }
 
         const std::lock_guard<std::mutex> lock(read_mtx);
 
@@ -552,31 +557,31 @@ namespace keya_driver_hardware_interface
         // }
         // RCLCPP_INFO(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
 
-        clear_buffer(input_buffer);
+        // clear_buffer(input_buffer);
         return hardware_interface::return_type::OK;
     }
 
     hardware_interface::return_type KeyaDriverHW::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
     {
         // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Start WRITING");
-        if (!stream->is_open())
-        {
-            static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
-            if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
-            {
-                start_disconnect_timer = node->get_clock()->now();
-                if(can_connect() && input_buffer.can_id == 0x07000001)
-                {
-                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
-                    RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Checking: write");
-                }
-                else if( input_buffer.can_id == 0x00000000 )
-                {
-                    RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot reconnect CAN...");
-                }
-            }
-            return hardware_interface::return_type::OK;
-        }
+        // if (!stream->is_open())
+        // {
+        //     static rclcpp::Time start_disconnect_timer = node->get_clock()->now();
+        //     if(node->get_clock()->now() - start_disconnect_timer > rclcpp::Duration(1,0))
+        //     {
+        //         start_disconnect_timer = node->get_clock()->now();
+        //         if(can_connect() && input_buffer.can_id == 0x07000001)
+        //         {
+        //             RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN reconnected");
+        //             RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Checking: write");
+        //         }
+        //         else if( input_buffer.can_id == 0x00000000 )
+        //         {
+        //             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Cannot reconnect CAN...");
+        //         }
+        //     }
+        //     return hardware_interface::return_type::OK;
+        // }
 
         // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In WRITE");
         can_frame cmd_frame;
@@ -632,7 +637,7 @@ namespace keya_driver_hardware_interface
 
         try
         {
-            can_write(cmd_frame, std::chrono::milliseconds(100));
+            can_write(cmd_frame, std::chrono::milliseconds(50));
         }
         catch(const std::runtime_error &e)
         {
@@ -660,11 +665,15 @@ namespace keya_driver_hardware_interface
                                 });
 
         run(timeout);
+        static bool error_printed = false;
         if (error)
         {
-            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Steering motor power lost: can_read");
-            throw std::runtime_error("Power Lost");
-            // throw std::system_error(error);
+            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Unable to perform can_read");
+            // error_printed = true;
+            // throw std::runtime_error("Unable to perform can_read");
+            throw std::system_error(error);
+        } else {
+            error_printed = false;
         }
     }
         
@@ -677,11 +686,15 @@ namespace keya_driver_hardware_interface
                                      error = res_error;
                                  });
         run(timeout);
+        static bool error_printed = false;
         if (error)
-        {
-            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Steering motor power lost: can_write");
-            throw std::runtime_error("Power Lost");
-            // throw std::system_error(error);
+        {   
+            RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Unable to perform can_write");
+            error_printed = true;
+            // throw std::runtime_error("Unable to perform can_write");
+            throw std::system_error(error);
+        } else {
+            error_printed = false;
         }
     }
 
@@ -698,13 +711,13 @@ namespace keya_driver_hardware_interface
     {
         io_context.restart();
         io_context.run_for(timeout);
-        if (!io_context.stopped())
-        {
-            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Operation Timeout, probably due to no data return from the device.");
-            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Awaiting Reconnection...");
-            // stream->close();
-            io_context.run();
-        }
+        // if (!io_context.stopped())
+        // {
+        //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Operation Timeout, probably due to no data return from the device.");
+        //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"),"Awaiting Reconnection...");
+        //     // stream->close();
+        //     // io_context.run();
+        // }
     }
 
     void KeyaDriverHW::manual_homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
