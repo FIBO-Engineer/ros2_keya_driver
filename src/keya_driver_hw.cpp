@@ -598,7 +598,8 @@ namespace keya_driver_hardware_interface
             cmd_frame = codec.encode_position_control_disable_request(can_id_list[0]);
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Overcurrent! Disabling");
         } else if(error_signal_1.DISABLE && !should_disable) {
-            cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]); 
+            cmd_frame = codec.encode_position_control_enable_request(can_id_list[0]);
+            pos_offset.store(-current_position_unoffset);
             RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "Disabled but shouldn't disable, Enabling");
         }else if(homing_state == OperationState::DOING)
         {
