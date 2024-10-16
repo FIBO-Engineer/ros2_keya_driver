@@ -317,7 +317,7 @@ namespace keya_driver_hardware_interface
             hw_commands_[i] = 0;
         }
 
-        node = rclcpp::Node::make_shared("keya_driver_node");
+        node = rclcpp::Node::make_shared("keya_driver");
 
         auto update_func = [this]()
         {
@@ -326,8 +326,8 @@ namespace keya_driver_hardware_interface
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_0);
             diagnostic_updater->add("Hardware Status", this, &KeyaDriverHW::produce_diagnostics_1);
 
-            centering_service = node->create_service<std_srvs::srv::Trigger>("center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
-            manual_homing_service = node->create_service<std_srvs::srv::Trigger>("set_zero_position", std::bind(&KeyaDriverHW::manual_homing_callback, this, std::placeholders::_1, std::placeholders::_2));
+            // centering_service = node->create_service<std_srvs::srv::Trigger>("~/center", std::bind(&KeyaDriverHW::centering_callback, this,std::placeholders::_1, std::placeholders::_2));
+            manual_homing_service = node->create_service<std_srvs::srv::Trigger>("~/set_zero_position", std::bind(&KeyaDriverHW::manual_homing_callback, this, std::placeholders::_1, std::placeholders::_2));
             
             analog_mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::analog_mode_callback, this, std::placeholders::_1));
             // center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
@@ -723,29 +723,29 @@ namespace keya_driver_hardware_interface
 
     }
 
-    void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
-                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response)
-    {
-        std::unique_lock<std::mutex> lock(centering_mtx);
-        centering_state = OperationState::DOING;
-        response->success = false;
-        response->message = "Unknown error";
+    // void KeyaDriverHW::centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+    //                                     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+    // {
+    //     std::unique_lock<std::mutex> lock(centering_mtx);
+    //     centering_state = OperationState::DOING;
+    //     response->success = false;
+    //     response->message = "Unknown error";
 
-        // Wait for state change or timeout
-        if(centering_cv.wait_for(lock, std::chrono::seconds(4), [&]{ return centering_state != OperationState::DOING; })) {
-            if(centering_state == OperationState::DONE) {
-                response->success = true;
-                response->message = "Centering Completed";
-            } else {
-                response->success = false;
-                response->message = "Centering Failed.";
-            }
-        } else {
-            centering_state = OperationState::FAILED;
-            response->success = false;
-            response->message = "Timeout";
-        }
-    }
+    //     // Wait for state change or timeout
+    //     if(centering_cv.wait_for(lock, std::chrono::seconds(4), [&]{ return centering_state != OperationState::DOING; })) {
+    //         if(centering_state == OperationState::DONE) {
+    //             response->success = true;
+    //             response->message = "Centering Completed";
+    //         } else {
+    //             response->success = false;
+    //             response->message = "Centering Failed.";
+    //         }
+    //     } else {
+    //         centering_state = OperationState::FAILED;
+    //         response->success = false;
+    //         response->message = "Timeout";
+    //     }
+    // }
 
     void KeyaDriverHW::analog_mode_callback(const std::shared_ptr<std_msgs::msg::Bool> _mode)
     {
