@@ -268,15 +268,26 @@ namespace keya_driver_hardware_interface
         ifreq ifr;
 
         natsock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+        if (natsock < 0)
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Error creating CAN socket");
+            return false;
+        }
 
         strcpy(ifr.ifr_name, device_id.c_str());
-        ioctl(natsock, SIOCGIFINDEX, &ifr);
+        if (ioctl(natsock, SIOCGIFINDEX, &ifr) < 0)
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Error in ioctl when getting CAN interface index");
+            close(natsock);
+            return false;
+        }
 
         addr.can_family = AF_CAN;
         addr.can_ifindex = ifr.ifr_ifindex;
         if (bind(natsock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
         {
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Error while binding CAN socket");
+            close(natsock);
             return false;
         }
 
@@ -285,30 +296,40 @@ namespace keya_driver_hardware_interface
         rfilter[0].can_id = 0x05800001;
         rfilter[0].can_mask = CAN_SFF_MASK;
 
-        setsockopt(natsock, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
-
+        if (setsockopt(natsock, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)) < 0)
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Error setting CAN filters");
+            close(natsock);
+            return false;
+        }
 
         stream = std::make_shared<boost::asio::posix::basic_stream_descriptor<>>(io_context);
-
         stream->assign(natsock);
 
-        return stream->is_open();
+        if (!stream->is_open())
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Failed to open stream on CAN socket");
+            close(natsock);
+            return false;
+        }
 
+        return true;
     }
+
 
     hardware_interface::CallbackReturn KeyaDriverHW::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
     {
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuring...");
 
         // device_id = "can0";
-        if(can_connect())
-        {
-            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN socket connected");
-        }
-        else
-        {
-            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket not connected");
-        }
+        // if(can_connect())
+        // {
+        //     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN socket connected");
+        // }
+        // else
+        // {
+        //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket not connected");
+        // }
         
         // Always reset values when configuring hardware
         for (uint i = 0; i < hw_states_.size(); i++)
@@ -495,6 +516,19 @@ namespace keya_driver_hardware_interface
         // }
 
         // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In READ");
+
+        if(!stream->is_open()) {
+            // Try not to reconnect too fast
+            static unsigned retry_count = 0;
+            if(retry_count++ == 10)
+            {
+                can_connect();
+                retry_count = 0;
+            }
+            return hardware_interface::return_type::OK;
+        }
+        
+
         MessageType mt;
         int read_count = 0;
         bool read_error = true;
@@ -583,6 +617,9 @@ namespace keya_driver_hardware_interface
         //     }
         //     return hardware_interface::return_type::OK;
         // }
+        if(!stream->is_open()) {
+            return hardware_interface::return_type::OK;
+        }
 
         // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In WRITE");
         can_frame cmd_frame;
@@ -673,6 +710,7 @@ namespace keya_driver_hardware_interface
             // RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Unable to perform can_read");
             // error_printed = true;
             // throw std::runtime_error("Unable to perform can_read");
+            stream->close();
             throw std::system_error(error);
         }// else {
             // error_printed = false;
@@ -695,6 +733,7 @@ namespace keya_driver_hardware_interface
             RCLCPP_FATAL(rclcpp::get_logger("KeyaDriverHW"), "Unable to perform can_write");
             // error_printed = true;
             // throw std::runtime_error("Unable to perform can_write");
+            stream->close();
             throw std::system_error(error);
         } //else {
         //     error_printed = false;
