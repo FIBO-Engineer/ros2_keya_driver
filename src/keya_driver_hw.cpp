@@ -322,14 +322,14 @@ namespace keya_driver_hardware_interface
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Configuring...");
 
         // device_id = "can0";
-        // if(can_connect())
-        // {
-        //     RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN socket connected");
-        // }
-        // else
-        // {
-        //     RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN socket not connected");
-        // }
+        if(can_connect())
+        {
+            RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "CAN Initial Connection Successful");
+        }
+        else
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "CAN Initial Connection Failed");
+        }
         
         // Always reset values when configuring hardware
         for (uint i = 0; i < hw_states_.size(); i++)
@@ -408,7 +408,7 @@ namespace keya_driver_hardware_interface
     hardware_interface::CallbackReturn KeyaDriverHW::on_activate(const rclcpp_lifecycle::State & /*previous_state*/)
     {
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Enabling Motor Control...");
+        // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Enabling Motor Control...");
 
         for (uint i = 0; i < hw_states_.size(); i++)
         {
@@ -426,7 +426,7 @@ namespace keya_driver_hardware_interface
             clear_buffer(input_buffer);
         }
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Enabled.");
+        // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Enabled.");
 
         /* -------------------------- Homing -----------------------------*/
 
@@ -517,7 +517,7 @@ namespace keya_driver_hardware_interface
 
         // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In READ");
 
-        if(!stream->is_open()) {
+        if(!stream || !stream->is_open()) {
             // Try not to reconnect too fast
             static unsigned retry_count = 0;
             if(retry_count++ == 10)
@@ -617,7 +617,7 @@ namespace keya_driver_hardware_interface
         //     }
         //     return hardware_interface::return_type::OK;
         // }
-        if(!stream->is_open()) {
+        if(!stream || !stream->is_open()) {
             return hardware_interface::return_type::OK;
         }
 
