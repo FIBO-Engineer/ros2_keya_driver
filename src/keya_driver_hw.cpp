@@ -199,8 +199,9 @@ namespace keya_driver_hardware_interface
             state_transmissions.push_back(state_transmission);
             command_transmissions.push_back(command_transmission);        
         }
-
-        analog_mode.writeFromNonRT(true);
+        std_msgs::msg::Bool true_bool;
+        true_bool.data = true;
+        analog_mode.writeFromNonRT(true_bool);
 
         return hardware_interface::CallbackReturn::SUCCESS;
     
