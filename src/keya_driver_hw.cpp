@@ -262,21 +262,32 @@ namespace keya_driver_hardware_interface
         
     }
 
-    bool KeyaDriverHW::can_connect()
+bool KeyaDriverHW::can_connect()
     {
         sockaddr_can addr;
         ifreq ifr;
 
         natsock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+        if (natsock < 0)
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Error creating CAN socket");
+            return false;
+        }
 
         strcpy(ifr.ifr_name, device_id.c_str());
-        ioctl(natsock, SIOCGIFINDEX, &ifr);
+        if (ioctl(natsock, SIOCGIFINDEX, &ifr) < 0)
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Error in ioctl when getting CAN interface index");
+            close(natsock);
+            return false;
+        }
 
         addr.can_family = AF_CAN;
         addr.can_ifindex = ifr.ifr_ifindex;
         if (bind(natsock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
         {
             RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Error while binding CAN socket");
+            close(natsock);
             return false;
         }
 
@@ -285,15 +296,24 @@ namespace keya_driver_hardware_interface
         rfilter[0].can_id = 0x05800001;
         rfilter[0].can_mask = CAN_SFF_MASK;
 
-        setsockopt(natsock, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
-
+        if (setsockopt(natsock, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)) < 0)
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Error setting CAN filters");
+            close(natsock);
+            return false;
+        }
 
         stream = std::make_shared<boost::asio::posix::basic_stream_descriptor<>>(io_context);
-
         stream->assign(natsock);
 
-        return stream->is_open();
+        if (!stream->is_open())
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("KeyaDriverHW"), "Failed to open stream on CAN socket");
+            close(natsock);
+            return false;
+        }
 
+        return true;
     }
 
     hardware_interface::CallbackReturn KeyaDriverHW::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
@@ -497,8 +517,8 @@ namespace keya_driver_hardware_interface
         // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In READ");
         MessageType mt;
         int read_count = 0;
-        bool read_error = true;
-        
+
+        read_error = true; // assume no threading
         while(read_count++ < 4) {
             clear_buffer(input_buffer);
             try
@@ -585,6 +605,9 @@ namespace keya_driver_hardware_interface
         // }
 
         // RCLCPP_WARN(rclcpp::get_logger("KeyaDriverHW"), "In WRITE");
+        if(read_error)
+            return hardware_interface::return_type::OK;
+
         can_frame cmd_frame;
         // If mode is mismatched.
         bool should_disable = analog_mode.readFromRT()->data;

@@ -108,6 +108,7 @@ namespace keya_driver_hardware_interface
 
         // lock for all read object
         std::mutex read_mtx;
+        bool read_error;
 
         // diagnostic
         rclcpp::Node::SharedPtr node;
