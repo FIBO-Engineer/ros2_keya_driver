@@ -200,6 +200,8 @@ namespace keya_driver_hardware_interface
             command_transmissions.push_back(command_transmission);        
         }
 
+        analog_mode.writeFromNonRT(true);
+
         return hardware_interface::CallbackReturn::SUCCESS;
     
     }
@@ -416,16 +418,16 @@ bool KeyaDriverHW::can_connect()
 
         // std::vector<bool> res;
 
-        for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
-        {
-            can_frame position_control_enable_frame = codec.encode_position_control_enable_request(can_id_list[i]);           
-            can_write(position_control_enable_frame, std::chrono::milliseconds(50));
-            // RCLCPP_INFO(rclcpp::get_logger("READ CAN"),"READ CAN.");
-            can_read(std::chrono::milliseconds(50));
-            clear_buffer(input_buffer);
-        }
+        // for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
+        // {
+        //     can_frame position_control_enable_frame = codec.encode_position_control_enable_request(can_id_list[i]);           
+        //     can_write(position_control_enable_frame, std::chrono::milliseconds(50));
+        //     // RCLCPP_INFO(rclcpp::get_logger("READ CAN"),"READ CAN.");
+        //     can_read(std::chrono::milliseconds(50));
+        //     clear_buffer(input_buffer);
+        // }
 
-        RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Enabled.");
+        // RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"),"Motor Control Enabled.");
 
         /* -------------------------- Homing -----------------------------*/
 
