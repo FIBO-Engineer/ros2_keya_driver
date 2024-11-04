@@ -39,6 +39,7 @@ namespace keya_driver_hardware_interface
         hw_commands_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
         hw_states_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
 
+        device_id = info_.hardware_parameters["device_id"];
         // get homing mode from parameter
         homing_mode = info_.hardware_parameters["homing_mode"];
         RCLCPP_INFO(rclcpp::get_logger("KeyaDriverHW"), "Homing mode: %s", homing_mode.c_str());

@@ -85,7 +85,7 @@ namespace keya_driver_hardware_interface
         boost::asio::io_context io_context;
 
     private:
-        std::string device_id = "can0";
+        std::string device_id;
         std::vector<canid_t> can_id_list = {0x86000001};
         // std::vector<canid_t> can_id_list;
         int natsock;
