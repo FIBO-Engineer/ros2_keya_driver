@@ -421,7 +421,7 @@ bool KeyaDriverHW::can_connect()
 
         for (std::vector<unsigned int>::size_type i = 0; i < can_id_list.size(); i++)
         {
-            can_frame position_control_enable_frame = codec.encode_position_control_enable_request(can_id_list[i]);           
+            can_frame position_control_enable_frame = codec.encode_position_control_disable_request(can_id_list[i]);           
             can_write(position_control_enable_frame, std::chrono::milliseconds(50));
             // RCLCPP_INFO(rclcpp::get_logger("READ CAN"),"READ CAN.");
             can_read(std::chrono::milliseconds(50));
