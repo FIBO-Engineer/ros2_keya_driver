@@ -355,7 +355,7 @@ bool KeyaDriverHW::can_connect()
             
             analog_mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::analog_mode_callback, this, std::placeholders::_1));
             // center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
-            connection_status_publisher_ = node->create_publisher<std_msgs::msg::Bool>("~/connection_staus", 1);
+            connection_status_publisher_ = node->create_publisher<std_msgs::msg::Bool>("~/connection_status", 1);
             connection_status_rt_publisher_ = std::make_unique<realtime_tools::RealtimePublisher<std_msgs::msg::Bool>>(connection_status_publisher_);
 
             rclcpp::spin(node);
