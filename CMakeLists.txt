@@ -15,6 +15,7 @@ find_package(controller_manager REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(example_interfaces REQUIRED)
 find_package(transmission_interface REQUIRED)
+find_package(realtime_tools REQUIRED)
 find_package(std_srvs REQUIRED)
 
 include_directories(

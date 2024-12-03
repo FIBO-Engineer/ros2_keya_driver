@@ -355,6 +355,8 @@ bool KeyaDriverHW::can_connect()
             
             analog_mode_subscriber = node->create_subscription<std_msgs::msg::Bool>("/analog", 10, std::bind(&KeyaDriverHW::analog_mode_callback, this, std::placeholders::_1));
             // center_subscriber = node->create_subscription<std_msgs::msg::Bool>("/center", 10, std::bind(&KeyaDriverHW::centering_callback, this, std::placeholders::_1));
+            connection_status_publisher_ = node->create_publisher<std_msgs::msg::Bool>("~/connection_staus", 1);
+            connection_status_rt_publisher_ = std::make_unique<realtime_tools::RealtimePublisher<std_msgs::msg::Bool>>(connection_status_publisher_);
 
             rclcpp::spin(node);
             rclcpp::shutdown();
@@ -583,6 +585,12 @@ bool KeyaDriverHW::can_connect()
         // RCLCPP_INFO(rclcpp::get_logger("Error1_Debug"), "Error1: %s", error_signal_1.getErrorMessage().c_str());
 
         // clear_buffer(input_buffer);
+        if(connection_status_rt_publisher_ && connection_status_rt_publisher_->trylock())
+        {
+            connection_status_rt_publisher_->msg_.data = !read_error;
+            connection_status_rt_publisher_->unlockAndPublish();
+        }
+
         return hardware_interface::return_type::OK;
     }
 

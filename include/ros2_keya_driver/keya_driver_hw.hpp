@@ -138,6 +138,9 @@ namespace keya_driver_hardware_interface
 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr analog_mode_subscriber;
         realtime_tools::RealtimeBuffer<std_msgs::msg::Bool> analog_mode;
+
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr connection_status_publisher_;
+        std::unique_ptr<realtime_tools::RealtimePublisher<std_msgs::msg::Bool>> connection_status_rt_publisher_;
         
         double current_position_unoffset;
         double current_current;
