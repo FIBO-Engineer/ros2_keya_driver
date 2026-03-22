@@ -29,6 +29,8 @@ namespace keya_driver_hardware_interface
         bool decode_position_command_response(can_frame &input_buffer);
         can_frame encode_position_request(canid_t can_id);
         double decode_position_response(can_frame &input_buffer);
+        can_frame encode_velocity_command_request(canid_t can_id, double cmd);
+        double decode_velocity_response(can_frame &input_buffer);
         can_frame encode_current_request(canid_t can_id);
         double decode_current_response(can_frame &input_buffer);
 

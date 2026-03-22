@@ -64,8 +64,8 @@ namespace keya_driver_hardware_interface
         hardware_interface::return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
         hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
-        double a_pos[1];
-        double a_cmd_pos[1];
+        double a_vel[1];
+        double a_cmd_vel[1];
 
     protected:
 
