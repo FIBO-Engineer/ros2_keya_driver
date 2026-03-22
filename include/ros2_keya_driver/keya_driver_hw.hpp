@@ -17,12 +17,8 @@
 
 #include "rclcpp/macros.hpp"
 
-#include <std_msgs/msg/float64.hpp>
-#include <std_srvs/srv/trigger.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/bool.hpp>
 
-#include <realtime_tools/realtime_buffer.h>
 #include <realtime_tools/realtime_publisher.h>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
@@ -31,7 +27,6 @@
 #include "transmission_interface/transmission.hpp"
 
 #include <fstream>
-#include <atomic>
 
 namespace keya_driver_hardware_interface
 {
@@ -69,8 +64,8 @@ namespace keya_driver_hardware_interface
         hardware_interface::return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
         hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
-        double a_pos[1];
-        double a_cmd_pos[1];
+        double a_vel[1];
+        double a_cmd_vel[1];
 
     protected:
 
@@ -87,7 +82,6 @@ namespace keya_driver_hardware_interface
     private:
         std::string device_id;
         std::vector<canid_t> can_id_list = {0x86000001};
-        // std::vector<canid_t> can_id_list;
         int natsock;
 
         std::vector<double> hw_commands_;
@@ -103,7 +97,6 @@ namespace keya_driver_hardware_interface
         std::vector<transmission_interface::ActuatorHandle> command_actuator_handles;
 
         std::shared_ptr<boost::asio::posix::basic_stream_descriptor<>> stream;
-        // boost::asio::posix::basic_stream_descriptor<> stream;
         can_frame input_buffer;
 
         // lock for all read object
@@ -117,61 +110,17 @@ namespace keya_driver_hardware_interface
         void produce_diagnostics_1(diagnostic_updater::DiagnosticStatusWrapper &stat);
         std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater;
 
-        // Homing Service
-        // void homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-        //                                 std::shared_ptr<std_srvs::srv::Trigger::Response> response);
-
-        void centering_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-                                        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
-        
-        // mode switching
-        void analog_mode_callback(const std::shared_ptr<std_msgs::msg::Bool> _mode);
-        void manual_homing_callback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-                                            std::shared_ptr<std_srvs::srv::Trigger::Response> reponse);
-
         bool can_connect();
-
-        // rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr homing_service;
-
-        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr centering_service;
-        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr manual_homing_service;
-
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr analog_mode_subscriber;
-        realtime_tools::RealtimeBuffer<std_msgs::msg::Bool> analog_mode;
 
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr connection_status_publisher_;
         std::unique_ptr<realtime_tools::RealtimePublisher<std_msgs::msg::Bool>> connection_status_rt_publisher_;
-        
-        double current_position_unoffset;
-        double current_current;
+
         ErrorSignal error_signal_0;
         ErrorSignal1 error_signal_1;
         uint16_t alarm_code;
 
-        double min_raw_position;
-
-        std::atomic<double> pos_offset;
-
-        enum OperationState: uint8_t {IDLE = 0, DONE = 1, DOING = 2, FAILED = 3};
-
-        std::atomic<OperationState> homing_state;
-        std::atomic<OperationState> centering_state;
-
-        std::mutex centering_mtx;
-        std::condition_variable centering_cv;
-        
         double min;
         double max;
-
-        std::string homing_mode;
-
-        static constexpr double max_wheel_right = -25.0;
-        static constexpr double max_wheel_left = 25.0;
-
-        static constexpr double CENTER_TO_RIGHT_DIST = -10.00;  //0.512 * 22.5
-        static constexpr double CENTER_TO_LEFT_DIST = 11.20; //0.498 * 22.5
-        static constexpr double CURRENT_THRESHOLD = 18.0;
-        static constexpr double POSITION_TOLERANCE = 0.002; //0.5;
     };
 }
 

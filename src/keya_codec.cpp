@@ -79,6 +79,48 @@ namespace keya_driver_hardware_interface
         return frame;
     }
 
+    can_frame KeyaCodec::encode_velocity_command_request(canid_t can_id, double cmd)
+    {
+        // Velocity in rad/s, converted to motor units (10000 units per revolution/s)
+        // Register 0x2003 is used for velocity command on the Keya KY170G.
+        int32_t cmd_unit = cmd * 10000 / (2 * M_PI);
+        can_frame frame;
+        frame.can_id = can_id;
+        frame.can_dlc = 8;
+        frame.data[0] = 0x23;
+        frame.data[1] = 0x03;
+        frame.data[2] = 0x20;
+        frame.data[3] = 0x01;
+        frame.data[4] = *((uint8_t *)(&cmd_unit) + 1);
+        frame.data[5] = *(uint8_t *)(&cmd_unit);
+        frame.data[6] = *((uint8_t *)(&cmd_unit) + 3);
+        frame.data[7] = *((uint8_t *)(&cmd_unit) + 2);
+        // Byte order: [bytes 1,0,3,2] matches the Keya motor CAN protocol byte swapping.
+        return frame;
+    }
+
+    double KeyaCodec::decode_velocity_response(can_frame &input_buffer)
+    {
+        if (input_buffer.can_id == 0x87000001)
+        {
+            // Bytes [2:3] of the heartbeat carry velocity in degrees/s (big-endian int16)
+            int16_t raw_velocity;
+            *(uint8_t *)(&raw_velocity) = input_buffer.data[3];
+            *((uint8_t *)(&raw_velocity) + 1) = input_buffer.data[2];
+            return raw_velocity * (M_PI / 180.0);
+        }
+        else if (input_buffer.can_id == 0x00000000)
+        {
+            RCLCPP_FATAL(rclcpp::get_logger("CAN_ID_VELOCITY_LOGGER"), "Motor disconnected");
+        }
+        else
+        {
+            RCLCPP_ERROR(rclcpp::get_logger("velocity_logger"), "Cannot read velocity.");
+        }
+        return 0.0;
+    }
+
+
     can_frame KeyaCodec::encode_position_request(canid_t can_id)
     {
         can_frame frame;

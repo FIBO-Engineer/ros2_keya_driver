@@ -6,19 +6,15 @@
             <hardware>
                 <plugin>keya_driver_hardware_interface/KeyaDriverHW</plugin>
                 <param name="device_id">can0</param>
-                <!-- <param name="can_id_list">{1}</param> -->
-                <!-- homing configuration options -->
-                <!-- choose either "auto" or "manual" only -->
-                <param name="homing_mode">manual</param>
             </hardware>
 
             <joint name="${prefix}_joint">
-                <command_interface name="position" >
-                    <param name="min">-0.4</param>
-                    <param name="max">0.4</param>
+                <command_interface name="velocity" >
+                    <param name="min">-1.0</param>
+                    <param name="max">1.0</param>
                 </command_interface>
                 
-                <state_interface name="position" />
+                <state_interface name="velocity" />
             </joint>
 
             <transmission name="${prefix}_transmission">
